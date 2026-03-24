@@ -77,10 +77,10 @@ function FI_UpdateMacros()
         UpsertMacro("0FI-Kick", nil, kickBody)
     else
         UpsertMacro("0FI-Kick", "INV_Misc_QuestionMark", "-- No interrupt for this class")
-        print("||cffff4444" .. FI_TITLE .. ":|r Your class has no direct interrupt.")
+        print("|cffff4444" .. FI_TITLE .. ":|r Your class has no direct interrupt.")
     end
 
-    print("||cffff4444" .. FI_TITLE .. ":|r Macros updated (mark " .. FI_Config.markIndex .. ", kick: " .. (spell or "no kick") .. ")")
+    print("|cffff4444" .. FI_TITLE .. ":|r Macros updated (mark " .. FI_Config.markIndex .. ", kick: " .. (spell or "no kick") .. ")")
 end
 
 local f = CreateFrame("Frame")
