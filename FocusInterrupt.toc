@@ -1,0 +1,7 @@
+## Interface: 120001
+## Title: FocusInterrupt
+## Version: 1.0
+
+Config.lua
+Core.lua
+UI.lua
