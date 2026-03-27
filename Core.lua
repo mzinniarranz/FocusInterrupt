@@ -53,8 +53,14 @@ local function UpsertMacro(name, icon, body)
     if idx and idx > 0 then
         EditMacro(idx, name, resolvedIcon, body)
     else
+        local globalCount, perCharCount = GetNumMacros()
+        if globalCount >= 138 then
+            print("|cffff4444" .. FI_TITLE .. ":|r Cannot create macro \"" .. name .. "\": global macro limit reached (138/138).")
+            return false
+        end
         CreateMacro(name, resolvedIcon, body, false)
     end
+    return true
 end
 
 function FI_UpdateMacros()
@@ -65,11 +71,12 @@ function FI_UpdateMacros()
         return
     end
 
-    local markBody = "/focus [@mouseover,exists,nodead]\n" ..
-                     "/target [@mouseover,exists,nodead]\n" ..
-                     "/tm " .. FI_Config.markIndex .. "\n" ..
+    local markBody = "/focus [@mouseover,exists,nodead][@target,exists,nodead]\n" ..
+                     "/target [@mouseover,exists,nodead][@target,exists,nodead]\n" ..
+                     "/tm [exists,nodead] " .. FI_Config.markIndex .. "\n" ..
                      "/targetlasttarget"
-    UpsertMacro("0FI-Mark", "ability_hunter_markedfordeath", markBody)
+                     
+    if not UpsertMacro("0FI-Mark", "ability_hunter_markedfordeath", markBody) then return end
 
     if spell then
         local kickBody = "#showtooltip " .. spell .. "\n" ..

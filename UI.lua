@@ -11,8 +11,6 @@ local MARKS = {
     { index = 8, name = "Skull",    icon = "Interface\\TargetingFrame\\UI-RaidTargetingIcon_8" },
 }
 
--- ─── Crear menú ───────────────────────────────────────────────────────────────
-
 local function CreateMenu()
     if FI_MenuFrame then return end
 
@@ -29,7 +27,7 @@ local function CreateMenu()
 
     FI_MenuFrame.TitleText:SetText(FI_TITLE)
 
-    -- ── Info spec/spell ──
+    -- Info spec/spell
     local infoLabel = FI_MenuFrame:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
     infoLabel:SetPoint("TOPLEFT", FI_MenuFrame, "TOPLEFT", 16, -36)
     infoLabel:SetText("Spec: loading...")
@@ -45,13 +43,13 @@ local function CreateMenu()
     markLabel:SetText("Current mark: loading...")
     FI_MenuFrame.markLabel = markLabel
 
-    -- ── Separator ──
+    -- Separator
     local sep1 = FI_MenuFrame:CreateTexture(nil, "ARTWORK")
     sep1:SetColorTexture(0.3, 0.3, 0.3, 0.8)
     sep1:SetSize(248, 1)
     sep1:SetPoint("TOPLEFT", FI_MenuFrame, "TOPLEFT", 16, -96)
 
-    -- ── Mark selector ──
+    -- Mark selector
     local markTitle = FI_MenuFrame:CreateFontString(nil, "OVERLAY", "GameFontNormal")
     markTitle:SetPoint("TOPLEFT", FI_MenuFrame, "TOPLEFT", 16, -110)
     markTitle:SetText("Mark for /focus:")
@@ -89,7 +87,8 @@ local function CreateMenu()
             end
             self.icon:SetAlpha(1)
             FI_UpdateMacros()
-            FI_MenuFrame.markLabel:SetText("Current mark: |T" .. MARKS[self.markIndex].icon .. ":14:14|t " .. MARKS[self.markIndex].name)            print("|cffff4444" .. FI_TITLE .. ":|r Mark changed to " .. self.markIndex .. " (" .. MARKS[self.markIndex].name .. ")")
+            FI_MenuFrame.markLabel:SetText("Current mark: |T" .. MARKS[self.markIndex].icon .. ":14:14|t " .. MARKS[self.markIndex].name)
+            print("|cffff4444" .. FI_TITLE .. ":|r Mark changed to " .. self.markIndex .. " (" .. MARKS[self.markIndex].name .. ")")
         end)
 
         btn:SetScript("OnEnter", function(self)
@@ -103,13 +102,13 @@ local function CreateMenu()
     end
     FI_MenuFrame.markButtons = markButtons
 
-    -- ── Separator 2 ──
+    -- Separator 2
     local sep2 = FI_MenuFrame:CreateTexture(nil, "ARTWORK")
     sep2:SetColorTexture(0.3, 0.3, 0.3, 0.8)
     sep2:SetSize(248, 1)
     sep2:SetPoint("TOPLEFT", FI_MenuFrame, "TOPLEFT", 16, -238)
 
-    -- ── Refresh macros button ──
+    -- Refresh macros button
     local regenBtn = CreateFrame("Button", nil, FI_MenuFrame, "UIPanelButtonTemplate")
     regenBtn:SetSize(248, 28)
     regenBtn:SetPoint("TOPLEFT", FI_MenuFrame, "TOPLEFT", 16, -252)
@@ -118,7 +117,7 @@ local function CreateMenu()
         FI_UpdateMacros()
     end)
 
-    -- ── RefreshInfo ──
+    -- RefreshInfo
     function FI_MenuFrame:RefreshInfo()
         local _, class = UnitClass("player")
         local currentSpec = GetSpecialization()
@@ -147,7 +146,7 @@ local function CreateMenu()
     end
 end
 
--- ─── Toggle ───────────────────────────────────────────────────────────────────
+-- Toggle 
 
 function FI_ToggleMenu()
     CreateMenu()
@@ -159,7 +158,30 @@ function FI_ToggleMenu()
     end
 end
 
--- ─── Slash commands ───────────────────────────────────────────────────────────
+-- Minimap button 
+local LDB = LibStub("LibDataBroker-1.1"):NewDataObject("FocusInterrupt", {
+    type = "launcher",
+    icon = "Interface\\AddOns\\FocusInterrupt\\icon",
+    OnClick = function(_, button)
+        FI_ToggleMenu()
+    end,
+    OnTooltipShow = function(tooltip)
+        tooltip:SetText(FI_TITLE)
+        tooltip:AddLine("Click to open settings", 1, 1, 1)
+    end,
+})
+
+local iconFrame = CreateFrame("Frame")
+iconFrame:RegisterEvent("ADDON_LOADED")
+iconFrame:SetScript("OnEvent", function(self, event, addonName)
+    if addonName == "FocusInterrupt" then
+        FI_Config.minimapBtn = FI_Config.minimapBtn or { hide = false }
+        LibStub("LibDBIcon-1.0"):Register("FocusInterrupt", LDB, FI_Config.minimapBtn)
+        self:UnregisterEvent("ADDON_LOADED")
+    end
+end)
+
+-- Slash commands
 
 SLASH_FOCUSINTERRUPT1 = "/fi"
 SLASH_FOCUSINTERRUPT2 = "/focusinterrupt"

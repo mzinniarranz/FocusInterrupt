@@ -4,7 +4,10 @@
 ## Author: Marc Zinni Arranz
 ## Notes: Auto-generates focus interrupt and mark macros based on your class and spec.
 ## X-Curse-Project-ID:
+## SavedVariables: FI_Config
+## IconTexture: Interface\AddOns\FocusInterrupt\icon
 
+Libs\LibDBIcon-1.0\embeds.xml
 Config.lua
 Core.lua
 UI.lua
