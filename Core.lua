@@ -1,5 +1,7 @@
 -- FocusInterrupt / Core.lua
 
+local FI = FocusInterruptAddon
+
 local INTERRUPTS = {
     WARRIOR       = "Pummel",
     PALADIN       = "Rebuke",
@@ -24,7 +26,6 @@ local HEALERS = {
     PRESERVATION = true,
 }
 
-
 local function SpecialCases(class, spec)
     if class == "DRUID" and spec == "Balance" then
         return INTERRUPTS["DRUID_BALANCE"]
@@ -32,13 +33,11 @@ local function SpecialCases(class, spec)
     return INTERRUPTS[class]
 end
 
-function FI_GetInterrupt()
+function FI.GetInterrupt()
     local _, class = UnitClass("player")
     local currentSpec = GetSpecialization()
     local currentSpecName = currentSpec and select(2, GetSpecializationInfo(currentSpec)) or "None"
     local isHealer = HEALERS[currentSpecName]
-
-    print("|cffff4444" .. FI_TITLE .. ":|r Loading: " .. currentSpecName .. (isHealer and " (Healer)" or ""))
 
     if isHealer and class ~= "SHAMAN" then
         return false
@@ -53,9 +52,9 @@ local function UpsertMacro(name, icon, body)
     if idx and idx > 0 then
         EditMacro(idx, name, resolvedIcon, body)
     else
-        local globalCount, perCharCount = GetNumMacros()
+        local globalCount = GetNumMacros()
         if globalCount >= 138 then
-            print("|cffff4444" .. FI_TITLE .. ":|r Cannot create macro \"" .. name .. "\": global macro limit reached (138/138).")
+            print("|cffff4444" .. FI.TITLE .. ":|r Cannot create macro \"" .. name .. "\": global macro limit reached (138/138).")
             return false
         end
         CreateMacro(name, resolvedIcon, body, false)
@@ -63,11 +62,15 @@ local function UpsertMacro(name, icon, body)
     return true
 end
 
-function FI_UpdateMacros()
-    local spell = FI_GetInterrupt()
+function FI.UpdateMacros()
+    local currentSpec = GetSpecialization()
+    local currentSpecName = currentSpec and select(2, GetSpecializationInfo(currentSpec)) or "None"
+    local spell = FI.GetInterrupt()
+
+    print("|cffff4444" .. FI.TITLE .. ":|r Loading: " .. currentSpecName)
 
     if spell == false then
-        print("|cffff4444" .. FI_TITLE .. ":|r Your spec has no interrupt. Macros not generated.")
+        print("|cffff4444" .. FI.TITLE .. ":|r Your spec has no interrupt. Macros not generated.")
         return
     end
 
@@ -75,7 +78,7 @@ function FI_UpdateMacros()
                      "/target [@mouseover,exists,nodead][@target,exists,nodead]\n" ..
                      "/tm [exists,nodead] " .. FI_Config.markIndex .. "\n" ..
                      "/targetlasttarget"
-                     
+
     if not UpsertMacro("0FI-Mark", "ability_hunter_markedfordeath", markBody) then return end
 
     if spell then
@@ -84,18 +87,18 @@ function FI_UpdateMacros()
         UpsertMacro("0FI-Kick", nil, kickBody)
     else
         UpsertMacro("0FI-Kick", "INV_Misc_QuestionMark", "-- No interrupt for this class")
-        print("|cffff4444" .. FI_TITLE .. ":|r Your class has no direct interrupt.")
+        print("|cffff4444" .. FI.TITLE .. ":|r Your class has no direct interrupt.")
     end
 
-    print("|cffff4444" .. FI_TITLE .. ":|r Macros updated (mark " .. FI_Config.markIndex .. ", kick: " .. (spell or "no kick") .. ")")
+    print("|cffff4444" .. FI.TITLE .. ":|r Macros updated (mark " .. FI_Config.markIndex .. ", kick: " .. (spell or "no kick") .. ")")
 end
 
 local f = CreateFrame("Frame")
 f:RegisterEvent("PLAYER_LOGIN")
 f:RegisterEvent("PLAYER_SPECIALIZATION_CHANGED")
 f:SetScript("OnEvent", function(self, event, ...)
-    FI_UpdateMacros()
-    if FI_MenuFrame and FI_MenuFrame:IsShown() then
-        FI_MenuFrame:RefreshInfo()
+    FI.UpdateMacros()
+    if FI.MenuFrame and FI.MenuFrame:IsShown() then
+        FI.MenuFrame:RefreshInfo()
     end
 end)
