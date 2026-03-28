@@ -3,7 +3,7 @@
 ## Version: 1.1.0
 ## Author: Marc Zinni Arranz
 ## Notes: Auto-generates focus interrupt and mark macros based on your class and spec.
-## X-Curse-Project-ID:
+## X-Curse-Project-ID: 1494325
 ## SavedVariables: FI_Config
 ## IconTexture: Interface\AddOns\FocusInterrupt\icon
 
