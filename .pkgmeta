@@ -1,0 +1,8 @@
+package-as: FocusInterrupt
+externals:
+  Libs/LibDBIcon-1.0: https://repos.wowace.com/wow/libdbicon-1-0/trunk
+ignore:
+  - README.md
+  - .gitignore
+  - .github
+  - .claude
