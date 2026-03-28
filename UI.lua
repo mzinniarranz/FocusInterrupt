@@ -58,6 +58,14 @@ local function CreateMenu()
     markTitle:SetPoint("TOPLEFT", FI.MenuFrame, "TOPLEFT", 16, -110)
     markTitle:SetText("Mark for /focus:")
 
+    local function SetMarkButtonDesaturated(btn, desaturated)
+        for _, region in pairs({btn:GetRegions()}) do
+            if region:IsObjectType("Texture") then
+                region:SetDesaturated(desaturated)
+            end
+        end
+    end
+
     local markButtons = {}
     for i, mark in ipairs(MARKS) do
         local btn = CreateFrame("Button", nil, FI.MenuFrame, "UIPanelButtonTemplate")
@@ -78,18 +86,14 @@ local function CreateMenu()
 
         btn.markIndex = i
 
-        if i == FI_Config.markIndex then
-            btn.icon:SetAlpha(1)
-        else
-            btn.icon:SetAlpha(0.4)
-        end
+        SetMarkButtonDesaturated(btn, i ~= FI_Config.markIndex)
 
         btn:SetScript("OnClick", function(self)
             FI_Config.markIndex = self.markIndex
             for _, b in ipairs(markButtons) do
-                b.icon:SetAlpha(0.4)
+                SetMarkButtonDesaturated(b, true)
             end
-            self.icon:SetAlpha(1)
+            SetMarkButtonDesaturated(self, false)
             FI.UpdateMacros()
             FI.MenuFrame.markLabel:SetText("Current mark: |T" .. MARKS[self.markIndex].icon .. ":14:14|t " .. MARKS[self.markIndex].name)
             print("|cffffaa00" .. FI.TITLE .. ":|r |cff00ff00Mark changed to " .. self.markIndex .. " (" .. MARKS[self.markIndex].name .. ").|r")
@@ -177,11 +181,7 @@ local function CreateMenu()
         self.markLabel:SetText("Current mark: |T" .. MARKS[FI_Config.markIndex].icon .. ":14:14|t " .. MARKS[FI_Config.markIndex].name)
 
         for _, b in ipairs(self.markButtons) do
-            if b.markIndex == FI_Config.markIndex then
-                b.icon:SetAlpha(1)
-            else
-                b.icon:SetAlpha(0.4)
-            end
+            SetMarkButtonDesaturated(b, b.markIndex ~= FI_Config.markIndex)
         end
 
         self.enemyOnlyCheck:SetChecked(FI_Config.focusEnemyOnly or false)
