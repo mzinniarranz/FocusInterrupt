@@ -2,7 +2,7 @@
 
 local FI = FocusInterruptAddon
 
-local DB_VERSION = 1
+local DB_VERSION = 2
 
 local MARKS = {
     { index = 1, name = "Star",     icon = "Interface\\TargetingFrame\\UI-RaidTargetingIcon_1" },
@@ -92,7 +92,7 @@ local function CreateMenu()
             self.icon:SetAlpha(1)
             FI.UpdateMacros()
             FI.MenuFrame.markLabel:SetText("Current mark: |T" .. MARKS[self.markIndex].icon .. ":14:14|t " .. MARKS[self.markIndex].name)
-            print("|cffff4444" .. FI.TITLE .. ":|r Mark changed to " .. self.markIndex .. " (" .. MARKS[self.markIndex].name .. ")")
+            print("|cffffaa00" .. FI.TITLE .. ":|r |cff00ff00Mark changed to " .. self.markIndex .. " (" .. MARKS[self.markIndex].name .. ").|r")
         end)
 
         btn:SetScript("OnEnter", function(self)
@@ -222,6 +222,7 @@ iconFrame:RegisterEvent("ADDON_LOADED")
 iconFrame:SetScript("OnEvent", function(self, event, addonName)
     if addonName == "FocusInterrupt" then
         if (FI_Config.dbVersion or 0) < DB_VERSION then
+            FI_Config.focusEnemyOnly = FI_Config.focusEnemyOnly or false
             FI_Config.dbVersion = DB_VERSION
         end
         FI_Config.minimapBtn = FI_Config.minimapBtn or { hide = false }

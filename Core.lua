@@ -2,6 +2,10 @@
 
 local FI = FocusInterruptAddon
 
+local PREFIX  = "|cffffaa00" .. FocusInterruptAddon.TITLE .. ":|r "
+local C_ERROR = "|cffff4444"
+local C_OK    = "|cff00ff00"
+
 local INTERRUPTS = {
     WARRIOR       = "Pummel",
     PALADIN       = "Rebuke",
@@ -53,8 +57,8 @@ local function UpsertMacro(name, icon, body)
         EditMacro(idx, name, resolvedIcon, body)
     else
         local globalCount = GetNumMacros()
-        if globalCount >= 138 then
-            print("|cffff4444" .. FI.TITLE .. ":|r Cannot create macro \"" .. name .. "\": global macro limit reached (138/138).")
+        if globalCount >= 120 then
+            print(PREFIX .. C_ERROR .. "Cannot create macro \"" .. name .. "\": global macro limit reached (120/120).|r")
             return false
         end
         CreateMacro(name, resolvedIcon, body, false)
@@ -67,10 +71,10 @@ function FI.UpdateMacros()
     local currentSpecName = currentSpec and select(2, GetSpecializationInfo(currentSpec)) or "None"
     local spell = FI.GetInterrupt()
 
-    print("|cffff4444" .. FI.TITLE .. ":|r Loading: " .. currentSpecName)
+    print(PREFIX .. "Loading: " .. currentSpecName)
 
     if spell == false then
-        print("|cffff4444" .. FI.TITLE .. ":|r Your spec has no interrupt. Macros not generated.")
+        print(PREFIX .. C_ERROR .. "Your spec has no interrupt. Macros not generated.|r")
         return
     end
 
@@ -89,22 +93,18 @@ function FI.UpdateMacros()
 
     if not UpsertMacro("0FI-Mark", "ability_hunter_markedfordeath", markBody) then return end
 
-    if spell then
-        local kickBody = "#showtooltip " .. spell .. "\n" ..
-                         "/cast [@focus,exists][@target] " .. spell
-        UpsertMacro("0FI-Kick", nil, kickBody)
-    else
-        UpsertMacro("0FI-Kick", "INV_Misc_QuestionMark", "-- No interrupt for this class")
-        print("|cffff4444" .. FI.TITLE .. ":|r Your class has no direct interrupt.")
-    end
+    local kickBody = "#showtooltip " .. spell .. "\n" ..
+                     "/cast [@focus,exists][@target] " .. spell
+    UpsertMacro("0FI-Kick", nil, kickBody)
 
-    print("|cffff4444" .. FI.TITLE .. ":|r Macros updated (mark " .. FI_Config.markIndex .. ", kick: " .. (spell or "no kick") .. ")")
+    print(PREFIX .. C_OK .. "Macros updated (mark " .. FI_Config.markIndex .. ", kick: " .. spell .. ").|r")
 end
 
 local f = CreateFrame("Frame")
 f:RegisterEvent("PLAYER_LOGIN")
 f:RegisterEvent("PLAYER_SPECIALIZATION_CHANGED")
-f:SetScript("OnEvent", function(self, event, ...)
+f:SetScript("OnEvent", function(self, event, unit)
+    if event == "PLAYER_SPECIALIZATION_CHANGED" and unit ~= "player" then return end
     FI.UpdateMacros()
     if FI.MenuFrame and FI.MenuFrame:IsShown() then
         FI.MenuFrame:RefreshInfo()
