@@ -23,31 +23,33 @@ local INTERRUPTS = {
     PRIEST        = "Silence",
 }
 
-local HEALERS = {
-    HOLY         = true,
-    DISCIPLINE   = true,
-    RESTORATION  = true,
-    PRESERVATION = true,
+-- Spec IDs are locale-independent, unlike spec names returned by GetSpecializationInfo
+local HEALER_SPEC_IDS = {
+    [65]   = true, -- Holy Paladin
+    [105]  = true, -- Restoration Druid
+    [256]  = true, -- Discipline Priest
+    [257]  = true, -- Holy Priest
+    [264]  = true, -- Restoration Shaman
+    [270]  = true, -- Mistweaver Monk
+    [1468] = true, -- Preservation Evoker
 }
 
-local function SpecialCases(class, spec)
-    if class == "DRUID" and spec == "Balance" then
-        return INTERRUPTS["DRUID_BALANCE"]
-    end
-    return INTERRUPTS[class]
-end
+local BALANCE_DRUID_SPEC_ID = 102
 
 function FI.GetInterrupt()
     local _, class = UnitClass("player")
     local currentSpec = GetSpecialization()
-    local currentSpecName = currentSpec and select(2, GetSpecializationInfo(currentSpec)) or "None"
-    local isHealer = HEALERS[currentSpecName]
+    local specID = currentSpec and GetSpecializationInfo(currentSpec)
 
-    if isHealer and class ~= "SHAMAN" then
+    if HEALER_SPEC_IDS[specID] then
         return false
     end
 
-    return SpecialCases(class, currentSpecName)
+    if specID == BALANCE_DRUID_SPEC_ID then
+        return INTERRUPTS["DRUID_BALANCE"]
+    end
+
+    return INTERRUPTS[class]
 end
 
 local function UpsertMacro(name, icon, body)

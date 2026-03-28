@@ -169,11 +169,9 @@ local function CreateMenu()
         self.infoLabel:SetText("Class/Spec: " .. class .. " - " .. specName)
 
         if spell == false then
-            self.spellLabel:SetText("|cffff4444Interrupt: Healer, no interrupt|r")
-        elseif spell then
-            self.spellLabel:SetText("|cff00ff00Interrupt: " .. spell .. "|r")
+            self.spellLabel:SetText("|cffff4444No interrupt available for this spec.|r")
         else
-            self.spellLabel:SetText("|cffff4444Interrupt: none|r")
+            self.spellLabel:SetText("|cff00ff00Interrupt: " .. spell .. "|r")
         end
 
         self.markLabel:SetText("Current mark: |T" .. MARKS[FI_Config.markIndex].icon .. ":14:14|t " .. MARKS[FI_Config.markIndex].name)
