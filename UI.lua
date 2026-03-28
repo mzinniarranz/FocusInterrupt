@@ -19,7 +19,7 @@ local function CreateMenu()
     if FI.MenuFrame then return end
 
     FI.MenuFrame = CreateFrame("Frame", "FocusInterruptMenu", UIParent, "BasicFrameTemplateWithInset")
-    FI.MenuFrame:SetSize(280, 302)
+    FI.MenuFrame:SetSize(280, 362)
     FI.MenuFrame:SetPoint("CENTER")
     FI.MenuFrame:SetMovable(true)
     FI.MenuFrame:EnableMouse(true)
@@ -112,10 +112,48 @@ local function CreateMenu()
     sep2:SetSize(248, 1)
     sep2:SetPoint("TOPLEFT", FI.MenuFrame, "TOPLEFT", 16, -238)
 
+    -- Checkbox: focus enemy only
+    local enemyOnlyCheck = CreateFrame("CheckButton", nil, FI.MenuFrame, "UICheckButtonTemplate")
+    enemyOnlyCheck:SetSize(26, 26)
+    enemyOnlyCheck:SetPoint("TOPLEFT", FI.MenuFrame, "TOPLEFT", 12, -248)
+    enemyOnlyCheck:SetChecked(FI_Config.focusEnemyOnly or false)
+
+    local enemyOnlyLabel = FI.MenuFrame:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+    enemyOnlyLabel:SetPoint("LEFT", enemyOnlyCheck, "RIGHT", 4, 0)
+    enemyOnlyLabel:SetText("Set focus only on enemies")
+
+    enemyOnlyCheck:SetScript("OnClick", function(self)
+        FI_Config.focusEnemyOnly = self:GetChecked()
+        FI.UpdateMacros()
+    end)
+
+    FI.MenuFrame.enemyOnlyCheck = enemyOnlyCheck
+
+    -- Checkbox: show minimap button
+    local minimapCheck = CreateFrame("CheckButton", nil, FI.MenuFrame, "UICheckButtonTemplate")
+    minimapCheck:SetSize(26, 26)
+    minimapCheck:SetPoint("TOPLEFT", FI.MenuFrame, "TOPLEFT", 12, -280)
+    minimapCheck:SetChecked(not FI_Config.minimapBtn.hide)
+
+    local minimapLabel = FI.MenuFrame:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+    minimapLabel:SetPoint("LEFT", minimapCheck, "RIGHT", 4, 0)
+    minimapLabel:SetText("Show minimap button")
+
+    minimapCheck:SetScript("OnClick", function(self)
+        FI_Config.minimapBtn.hide = not self:GetChecked()
+        if FI_Config.minimapBtn.hide then
+            LibStub("LibDBIcon-1.0"):Hide("FocusInterrupt")
+        else
+            LibStub("LibDBIcon-1.0"):Show("FocusInterrupt")
+        end
+    end)
+
+    FI.MenuFrame.minimapCheck = minimapCheck
+
     -- Refresh macros button
     local regenBtn = CreateFrame("Button", nil, FI.MenuFrame, "UIPanelButtonTemplate")
     regenBtn:SetSize(248, 28)
-    regenBtn:SetPoint("TOPLEFT", FI.MenuFrame, "TOPLEFT", 16, -252)
+    regenBtn:SetPoint("TOPLEFT", FI.MenuFrame, "TOPLEFT", 16, -314)
     regenBtn:SetText("Refresh macros")
     regenBtn:SetScript("OnClick", function()
         FI.UpdateMacros()
@@ -147,6 +185,9 @@ local function CreateMenu()
                 b.icon:SetAlpha(0.4)
             end
         end
+
+        self.enemyOnlyCheck:SetChecked(FI_Config.focusEnemyOnly or false)
+        self.minimapCheck:SetChecked(not FI_Config.minimapBtn.hide)
     end
 end
 
