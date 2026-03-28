@@ -2,8 +2,6 @@
 
 local FI = FocusInterruptAddon
 
-local DB_VERSION = 2
-
 local MARKS = {
     { index = 1, name = "Star",     icon = "Interface\\TargetingFrame\\UI-RaidTargetingIcon_1" },
     { index = 2, name = "Circle",   icon = "Interface\\TargetingFrame\\UI-RaidTargetingIcon_2" },
@@ -219,10 +217,6 @@ local iconFrame = CreateFrame("Frame")
 iconFrame:RegisterEvent("ADDON_LOADED")
 iconFrame:SetScript("OnEvent", function(self, event, addonName)
     if addonName == "FocusInterrupt" then
-        if (FI_Config.dbVersion or 0) < DB_VERSION then
-            FI_Config.focusEnemyOnly = FI_Config.focusEnemyOnly or false
-            FI_Config.dbVersion = DB_VERSION
-        end
         FI_Config.minimapBtn = FI_Config.minimapBtn or { hide = false }
         LibStub("LibDBIcon-1.0"):Register("FocusInterrupt", LDB, FI_Config.minimapBtn)
         self:UnregisterEvent("ADDON_LOADED")
