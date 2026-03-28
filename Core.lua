@@ -80,18 +80,17 @@ function FI.UpdateMacros()
         return
     end
 
-    local unitCondition = FI_Config.focusEnemyOnly
+    local stopLine = FI_Config.focusEnemyOnly
+        and "/stopmacro [@mouseover,exists,nodead,noharm]\n"
+        or  ""
+
+    local condition = FI_Config.focusEnemyOnly
         and "[@mouseover,exists,nodead,harm][@target,exists,nodead,harm]"
-        or  "[@mouseover,exists,nodead][@target,exists,nodead]"
+        or  "[@mouseover,exists,nodead][]"
 
-    local markCondition = FI_Config.focusEnemyOnly
-        and "[exists,nodead,harm]"
-        or  "[exists,nodead]"
-
-    local markBody = "/focus " .. unitCondition .. "\n" ..
-                     "/target " .. unitCondition .. "\n" ..
-                     "/tm " .. markCondition .. " " .. FI_Config.markIndex .. "\n" ..
-                     "/targetlasttarget"
+    local markBody = stopLine ..
+                     "/focus " .. condition .. "\n" ..
+                     "/tm " .. condition .. " " .. FI_Config.markIndex
 
     if not UpsertMacro("0FI-Mark", "ability_hunter_markedfordeath", markBody) then return end
 
