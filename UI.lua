@@ -13,65 +13,81 @@ local MARKS = {
     { index = 8, name = "Skull",    icon = "Interface\\TargetingFrame\\UI-RaidTargetingIcon_8" },
 }
 
-local function CreateMenu()
-    if FI.MenuFrame then return end
-
-    FI.MenuFrame = CreateFrame("Frame", "FocusInterruptMenu", UIParent, "BasicFrameTemplateWithInset")
-    FI.MenuFrame:SetSize(280, 362)
-    FI.MenuFrame:SetPoint("CENTER")
-    FI.MenuFrame:SetMovable(true)
-    FI.MenuFrame:EnableMouse(true)
-    FI.MenuFrame:RegisterForDrag("LeftButton")
-    FI.MenuFrame:SetScript("OnDragStart", FI.MenuFrame.StartMoving)
-    FI.MenuFrame:SetScript("OnDragStop", FI.MenuFrame.StopMovingOrSizing)
-    FI.MenuFrame:SetFrameStrata("FULLSCREEN_DIALOG")
-    FI.MenuFrame:Hide()
-
-    FI.MenuFrame.TitleText:SetText(FI.TITLE)
-
-    -- Info spec/spell
-    local infoLabel = FI.MenuFrame:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
-    infoLabel:SetPoint("TOPLEFT", FI.MenuFrame, "TOPLEFT", 16, -36)
-    infoLabel:SetText("Spec: loading...")
-    FI.MenuFrame.infoLabel = infoLabel
-
-    local spellLabel = FI.MenuFrame:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
-    spellLabel:SetPoint("TOPLEFT", infoLabel, "BOTTOMLEFT", 0, -4)
-    spellLabel:SetText("Interrupt: loading...")
-    FI.MenuFrame.spellLabel = spellLabel
-
-    local markLabel = FI.MenuFrame:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
-    markLabel:SetPoint("TOPLEFT", spellLabel, "BOTTOMLEFT", 0, -4)
-    markLabel:SetText("Current mark: loading...")
-    FI.MenuFrame.markLabel = markLabel
-
-    -- Separator
-    local sep1 = FI.MenuFrame:CreateTexture(nil, "ARTWORK")
-    sep1:SetColorTexture(0.3, 0.3, 0.3, 0.8)
-    sep1:SetSize(248, 1)
-    sep1:SetPoint("TOPLEFT", FI.MenuFrame, "TOPLEFT", 16, -96)
-
-    -- Mark selector
-    local markTitle = FI.MenuFrame:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-    markTitle:SetPoint("TOPLEFT", FI.MenuFrame, "TOPLEFT", 16, -110)
-    markTitle:SetText("Mark for /focus:")
-
-    local function SetMarkButtonDesaturated(btn, desaturated)
-        for _, region in pairs({btn:GetRegions()}) do
-            if region:IsObjectType("Texture") then
-                region:SetDesaturated(desaturated)
-            end
+local function SetMarkButtonDesaturated(btn, desaturated)
+    for _, region in ipairs({btn:GetRegions()}) do
+        if region:IsObjectType("Texture") then
+            region:SetDesaturated(desaturated)
         end
     end
+end
+
+-- Syncs all visual state of a panel to FI_Config and the current player state.
+-- refs must contain: infoLabel, spellLabel, markLabel, markButtons,
+--                    enemyOnlyCheck, markOnlyCheck, minimapCheck
+local function ApplyRefreshToRefs(refs)
+    local _, class = UnitClass("player")
+    local currentSpec = GetSpecialization()
+    local specName = currentSpec and select(2, GetSpecializationInfo(currentSpec)) or "None"
+    local spell = FI.GetInterrupt()
+
+    refs.infoLabel:SetText("Class/Spec: " .. class .. " - " .. specName)
+    if spell == false then
+        refs.spellLabel:SetText("|cffff4444No interrupt available for this spec.|r")
+    else
+        refs.spellLabel:SetText("|cff00ff00Interrupt: " .. spell .. "|r")
+    end
+    refs.markLabel:SetText("Current mark: |T" .. MARKS[FI_Config.markIndex].icon .. ":14:14|t " .. MARKS[FI_Config.markIndex].name)
+    for _, b in ipairs(refs.markButtons) do
+        SetMarkButtonDesaturated(b, b.markIndex ~= FI_Config.markIndex)
+    end
+    refs.enemyOnlyCheck:SetChecked(FI_Config.focusEnemyOnly or false)
+    refs.markOnlyCheck:SetChecked(FI_Config.markOnly or false)
+    refs.minimapCheck:SetChecked(not FI_Config.minimapBtn.hide)
+end
+
+-- Builds the shared panel content (mark buttons, checkboxes, refresh button, combat state).
+-- cfg fields:
+--   yBase        (number) Y offset from parent TOPLEFT for the first info label
+--   sepWidth     (number) Width of the two separators
+--   combatAnchor (table)  { point, relativePoint, x, y } for the combat warning label
+-- Returns a refs table with widget references and setCombatState.
+local function BuildPanelContent(parent, cfg)
+    local yBase = cfg.yBase
+    local sepWidth = cfg.sepWidth
+    local combatAnchor = cfg.combatAnchor
+
+    -- Info labels
+    local infoLabel = parent:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+    infoLabel:SetPoint("TOPLEFT", parent, "TOPLEFT", 16, yBase)
+    infoLabel:SetText("Spec: loading...")
+
+    local spellLabel = parent:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+    spellLabel:SetPoint("TOPLEFT", infoLabel, "BOTTOMLEFT", 0, -4)
+    spellLabel:SetText("Interrupt: loading...")
+
+    local markLabel = parent:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+    markLabel:SetPoint("TOPLEFT", spellLabel, "BOTTOMLEFT", 0, -4)
+    markLabel:SetText("Current mark: loading...")
+
+    -- Separator 1
+    local sep1 = parent:CreateTexture(nil, "ARTWORK")
+    sep1:SetColorTexture(0.3, 0.3, 0.3, 0.8)
+    sep1:SetSize(sepWidth, 1)
+    sep1:SetPoint("TOPLEFT", parent, "TOPLEFT", 16, yBase - 60)
+
+    -- Mark selector
+    local markTitle = parent:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+    markTitle:SetPoint("TOPLEFT", parent, "TOPLEFT", 16, yBase - 74)
+    markTitle:SetText("Mark for /focus:")
 
     local markButtons = {}
     for i, mark in ipairs(MARKS) do
-        local btn = CreateFrame("Button", nil, FI.MenuFrame, "UIPanelButtonTemplate")
+        local btn = CreateFrame("Button", nil, parent, "UIPanelButtonTemplate")
         btn:SetSize(42, 42)
 
         local col = (i - 1) % 4
         local row = math.floor((i - 1) / 4)
-        btn:SetPoint("TOPLEFT", FI.MenuFrame, "TOPLEFT", 16 + col * 48, -134 - row * 48)
+        btn:SetPoint("TOPLEFT", parent, "TOPLEFT", 16 + col * 48, yBase - 98 - row * 48)
 
         btn:SetText("")
         btn:SetNormalTexture(mark.icon)
@@ -81,7 +97,6 @@ local function CreateMenu()
         icon:SetSize(18, 18)
         icon:SetPoint("CENTER", btn, "CENTER", 0, 0)
         btn.icon = icon
-
         btn.markIndex = i
 
         SetMarkButtonDesaturated(btn, i ~= FI_Config.markIndex)
@@ -93,8 +108,8 @@ local function CreateMenu()
             end
             SetMarkButtonDesaturated(self, false)
             FI.UpdateMacros()
-            FI.MenuFrame.markLabel:SetText("Current mark: |T" .. MARKS[self.markIndex].icon .. ":14:14|t " .. MARKS[self.markIndex].name)
-            print("|cffffaa00" .. FI.TITLE .. ":|r |cff00ff00Mark changed to " .. self.markIndex .. " (" .. MARKS[self.markIndex].name .. ").|r")
+            markLabel:SetText("Current mark: |T" .. MARKS[self.markIndex].icon .. ":14:14|t " .. MARKS[self.markIndex].name)
+            print(FI.PREFIX .. "|cff00ff00Mark changed to " .. self.markIndex .. " (" .. MARKS[self.markIndex].name .. ").|r")
         end)
 
         btn:SetScript("OnEnter", function(self)
@@ -106,21 +121,31 @@ local function CreateMenu()
 
         markButtons[i] = btn
     end
-    FI.MenuFrame.markButtons = markButtons
 
-    -- Separator 2
-    local sep2 = FI.MenuFrame:CreateTexture(nil, "ARTWORK")
-    sep2:SetColorTexture(0.3, 0.3, 0.3, 0.8)
-    sep2:SetSize(248, 1)
-    sep2:SetPoint("TOPLEFT", FI.MenuFrame, "TOPLEFT", 16, -238)
+    -- Options section header: ────── Options ──────
+    local optionsTitle = parent:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+    optionsTitle:SetPoint("CENTER", parent, "TOPLEFT", 16 + sepWidth / 2, yBase - 208)
+    optionsTitle:SetText("Options")
+
+    local optionsLineLeft = parent:CreateTexture(nil, "ARTWORK")
+    optionsLineLeft:SetColorTexture(0.3, 0.3, 0.3, 0.8)
+    optionsLineLeft:SetHeight(1)
+    optionsLineLeft:SetPoint("LEFT", parent, "TOPLEFT", 16, yBase - 208)
+    optionsLineLeft:SetPoint("RIGHT", optionsTitle, "LEFT", -6, 0)
+
+    local optionsLineRight = parent:CreateTexture(nil, "ARTWORK")
+    optionsLineRight:SetColorTexture(0.3, 0.3, 0.3, 0.8)
+    optionsLineRight:SetHeight(1)
+    optionsLineRight:SetPoint("LEFT", optionsTitle, "RIGHT", 6, 0)
+    optionsLineRight:SetPoint("RIGHT", parent, "TOPLEFT", 16 + sepWidth, yBase - 208)
 
     -- Checkbox: focus enemy only
-    local enemyOnlyCheck = CreateFrame("CheckButton", nil, FI.MenuFrame, "UICheckButtonTemplate")
+    local enemyOnlyCheck = CreateFrame("CheckButton", nil, parent, "UICheckButtonTemplate")
     enemyOnlyCheck:SetSize(26, 26)
-    enemyOnlyCheck:SetPoint("TOPLEFT", FI.MenuFrame, "TOPLEFT", 12, -248)
+    enemyOnlyCheck:SetPoint("TOPLEFT", parent, "TOPLEFT", 12, yBase - 234)
     enemyOnlyCheck:SetChecked(FI_Config.focusEnemyOnly or false)
 
-    local enemyOnlyLabel = FI.MenuFrame:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+    local enemyOnlyLabel = parent:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
     enemyOnlyLabel:SetPoint("LEFT", enemyOnlyCheck, "RIGHT", 4, 0)
     enemyOnlyLabel:SetText("Set focus only on enemies")
 
@@ -129,15 +154,28 @@ local function CreateMenu()
         FI.UpdateMacros()
     end)
 
-    FI.MenuFrame.enemyOnlyCheck = enemyOnlyCheck
+    -- Checkbox: mark only (no focus)
+    local markOnlyCheck = CreateFrame("CheckButton", nil, parent, "UICheckButtonTemplate")
+    markOnlyCheck:SetSize(26, 26)
+    markOnlyCheck:SetPoint("TOPLEFT", parent, "TOPLEFT", 12, yBase - 266)
+    markOnlyCheck:SetChecked(FI_Config.markOnly or false)
+
+    local markOnlyLabel = parent:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+    markOnlyLabel:SetPoint("LEFT", markOnlyCheck, "RIGHT", 4, 0)
+    markOnlyLabel:SetText("Mark only (no focus)")
+
+    markOnlyCheck:SetScript("OnClick", function(self)
+        FI_Config.markOnly = self:GetChecked()
+        FI.UpdateMacros()
+    end)
 
     -- Checkbox: show minimap button
-    local minimapCheck = CreateFrame("CheckButton", nil, FI.MenuFrame, "UICheckButtonTemplate")
+    local minimapCheck = CreateFrame("CheckButton", nil, parent, "UICheckButtonTemplate")
     minimapCheck:SetSize(26, 26)
-    minimapCheck:SetPoint("TOPLEFT", FI.MenuFrame, "TOPLEFT", 12, -280)
+    minimapCheck:SetPoint("TOPLEFT", parent, "TOPLEFT", 12, yBase - 298)
     minimapCheck:SetChecked(not FI_Config.minimapBtn.hide)
 
-    local minimapLabel = FI.MenuFrame:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+    local minimapLabel = parent:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
     minimapLabel:SetPoint("LEFT", minimapCheck, "RIGHT", 4, 0)
     minimapLabel:SetText("Show minimap button")
 
@@ -150,41 +188,92 @@ local function CreateMenu()
         end
     end)
 
-    FI.MenuFrame.minimapCheck = minimapCheck
-
     -- Refresh macros button
-    local regenBtn = CreateFrame("Button", nil, FI.MenuFrame, "UIPanelButtonTemplate")
+    local regenBtn = CreateFrame("Button", nil, parent, "UIPanelButtonTemplate")
     regenBtn:SetSize(248, 28)
-    regenBtn:SetPoint("TOPLEFT", FI.MenuFrame, "TOPLEFT", 16, -314)
+    regenBtn:SetPoint("TOPLEFT", parent, "TOPLEFT", 16, yBase - 332)
     regenBtn:SetText("Refresh macros")
     regenBtn:SetScript("OnClick", function()
         FI.UpdateMacros()
     end)
 
-    -- RefreshInfo
-    function FI.MenuFrame:RefreshInfo()
-        local _, class = UnitClass("player")
-        local currentSpec = GetSpecialization()
-        local specName = currentSpec and select(2, GetSpecializationInfo(currentSpec)) or "None"
-        local spell = FI.GetInterrupt()
+    -- Combat warning label
+    local combatLabel = parent:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+    combatLabel:SetPoint(combatAnchor[1], parent, combatAnchor[2], combatAnchor[3], combatAnchor[4])
+    combatLabel:SetText("|cffff4444In combat – changes will apply after combat.|r")
+    combatLabel:Hide()
 
-        self.infoLabel:SetText("Class/Spec: " .. class .. " - " .. specName)
-
-        if spell == false then
-            self.spellLabel:SetText("|cffff4444No interrupt available for this spec.|r")
+    local function SetCombatState(inCombat)
+        if inCombat then combatLabel:Show() else combatLabel:Hide() end
+        for _, b in ipairs(markButtons) do
+            if inCombat then b:Disable() else b:Enable() end
+        end
+        if inCombat then
+            enemyOnlyCheck:Disable()
+            markOnlyCheck:Disable()
+            minimapCheck:Disable()
+            regenBtn:Disable()
         else
-            self.spellLabel:SetText("|cff00ff00Interrupt: " .. spell .. "|r")
+            enemyOnlyCheck:Enable()
+            markOnlyCheck:Enable()
+            minimapCheck:Enable()
+            regenBtn:Enable()
         end
-
-        self.markLabel:SetText("Current mark: |T" .. MARKS[FI_Config.markIndex].icon .. ":14:14|t " .. MARKS[FI_Config.markIndex].name)
-
-        for _, b in ipairs(self.markButtons) do
-            SetMarkButtonDesaturated(b, b.markIndex ~= FI_Config.markIndex)
-        end
-
-        self.enemyOnlyCheck:SetChecked(FI_Config.focusEnemyOnly or false)
-        self.minimapCheck:SetChecked(not FI_Config.minimapBtn.hide)
     end
+
+    parent:RegisterEvent("PLAYER_REGEN_DISABLED")
+    parent:RegisterEvent("PLAYER_REGEN_ENABLED")
+    parent:SetScript("OnEvent", function(self, event)
+        SetCombatState(event == "PLAYER_REGEN_DISABLED")
+    end)
+
+    return {
+        infoLabel      = infoLabel,
+        spellLabel     = spellLabel,
+        markLabel      = markLabel,
+        markButtons    = markButtons,
+        enemyOnlyCheck = enemyOnlyCheck,
+        markOnlyCheck  = markOnlyCheck,
+        minimapCheck   = minimapCheck,
+        setCombatState = SetCombatState,
+    }
+end
+
+-- Floating popup menu
+
+local function CreateMenu()
+    if FI.MenuFrame then return end
+
+    FI.MenuFrame = CreateFrame("Frame", "FocusInterruptMenu", UIParent, "BasicFrameTemplateWithInset")
+    FI.MenuFrame:SetSize(280, 416)
+    FI.MenuFrame:SetPoint("CENTER")
+    FI.MenuFrame:SetMovable(true)
+    FI.MenuFrame:EnableMouse(true)
+    FI.MenuFrame:RegisterForDrag("LeftButton")
+    FI.MenuFrame:SetScript("OnDragStart", FI.MenuFrame.StartMoving)
+    FI.MenuFrame:SetScript("OnDragStop", FI.MenuFrame.StopMovingOrSizing)
+    FI.MenuFrame:SetFrameStrata("FULLSCREEN_DIALOG")
+    FI.MenuFrame:Hide()
+    FI.MenuFrame.TitleText:SetText(FI.TITLE)
+    FI.MenuFrame.CloseButton:SetScript("OnClick", function()
+        FI.MenuFrame:Hide()
+    end)
+
+    local refs = BuildPanelContent(FI.MenuFrame, {
+        yBase        = -36,
+        sepWidth     = 248,
+        combatAnchor = { "BOTTOMLEFT", "BOTTOMLEFT", 16, 8 },
+    })
+
+    for k, v in pairs(refs) do FI.MenuFrame[k] = v end
+
+    function FI.MenuFrame:RefreshInfo()
+        ApplyRefreshToRefs(self)
+    end
+
+    FI.MenuFrame:SetScript("OnShow", function()
+        FI.MenuFrame.setCombatState(InCombatLockdown())
+    end)
 end
 
 -- Toggle
@@ -197,6 +286,31 @@ local function ToggleMenu()
         FI.MenuFrame:RefreshInfo()
         FI.MenuFrame:Show()
     end
+end
+
+-- Options panel (Interface > AddOns)
+
+local function CreateOptionsPanel()
+    local panel = CreateFrame("Frame")
+
+    local title = panel:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
+    title:SetPoint("TOPLEFT", panel, "TOPLEFT", 16, -16)
+    title:SetText(FI.TITLE)
+
+    local refs = BuildPanelContent(panel, {
+        yBase        = -40,
+        sepWidth     = 500,
+        combatAnchor = { "TOPLEFT", "TOPLEFT", 16, -408 },
+    })
+
+    panel:SetScript("OnShow", function()
+        ApplyRefreshToRefs(refs)
+        refs.setCombatState(InCombatLockdown())
+    end)
+
+    local category = Settings.RegisterCanvasLayoutCategory(panel, FI.TITLE)
+    Settings.RegisterAddOnCategory(category)
+    FI.OptionsCategory = category
 end
 
 -- Minimap button
@@ -219,6 +333,7 @@ iconFrame:SetScript("OnEvent", function(self, event, addonName)
     if addonName == "FocusInterrupt" then
         FI_Config.minimapBtn = FI_Config.minimapBtn or { hide = false }
         LibStub("LibDBIcon-1.0"):Register("FocusInterrupt", LDB, FI_Config.minimapBtn)
+        CreateOptionsPanel()
         self:UnregisterEvent("ADDON_LOADED")
     end
 end)

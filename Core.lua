@@ -3,6 +3,7 @@
 local FI = FocusInterruptAddon
 
 local PREFIX  = "|cffffaa00" .. FocusInterruptAddon.TITLE .. ":|r "
+FI.PREFIX = PREFIX
 local C_ERROR = "|cffff4444"
 local C_OK    = "|cff00ff00"
 
@@ -29,7 +30,6 @@ local HEALER_SPEC_IDS = {
     [105]  = true, -- Restoration Druid
     [256]  = true, -- Discipline Priest
     [257]  = true, -- Holy Priest
-    [264]  = true, -- Restoration Shaman
     [270]  = true, -- Mistweaver Monk
     [1468] = true, -- Preservation Evoker
 }
@@ -69,28 +69,33 @@ local function UpsertMacro(name, icon, body)
 end
 
 function FI.UpdateMacros()
-    local currentSpec = GetSpecialization()
-    local currentSpecName = currentSpec and select(2, GetSpecializationInfo(currentSpec)) or "None"
+    if InCombatLockdown() then
+        return
+    end
+
     local spell = FI.GetInterrupt()
 
-    print(PREFIX .. "Loading: " .. currentSpecName)
-
-    if spell == false then
+    if not spell then
         print(PREFIX .. C_ERROR .. "Your spec has no interrupt. Macros not generated.|r")
         return
     end
 
-    local stopLine = FI_Config.focusEnemyOnly
-        and "/stopmacro [@mouseover,exists,nodead,noharm]\n"
-        or  ""
+    local markBody
+    if FI_Config.markOnly then
+        markBody = "/tm [@mouseover,exists,nodead][] " .. FI_Config.markIndex
+    else
+        local stopLine = FI_Config.focusEnemyOnly
+            and "/stopmacro [@mouseover,exists,nodead,noharm]\n"
+            or  ""
 
-    local condition = FI_Config.focusEnemyOnly
-        and "[@mouseover,exists,nodead,harm][@target,exists,nodead,harm]"
-        or  "[@mouseover,exists,nodead][]"
+        local condition = FI_Config.focusEnemyOnly
+            and "[@mouseover,exists,nodead,harm][@target,exists,nodead,harm]"
+            or  "[@mouseover,exists,nodead][]"
 
-    local markBody = stopLine ..
-                     "/focus " .. condition .. "\n" ..
-                     "/tm " .. condition .. " " .. FI_Config.markIndex
+        markBody = stopLine ..
+                   "/focus " .. condition .. "\n" ..
+                   "/tm " .. condition .. " " .. FI_Config.markIndex
+    end
 
     if not UpsertMacro("0FI-Mark", "ability_hunter_markedfordeath", markBody) then return end
 
@@ -101,11 +106,25 @@ function FI.UpdateMacros()
     print(PREFIX .. C_OK .. "Macros updated (mark " .. FI_Config.markIndex .. ", kick: " .. spell .. ").|r")
 end
 
+local pendingUpdate = false
+
 local f = CreateFrame("Frame")
 f:RegisterEvent("PLAYER_LOGIN")
 f:RegisterEvent("PLAYER_SPECIALIZATION_CHANGED")
+f:RegisterEvent("PLAYER_REGEN_ENABLED")
 f:SetScript("OnEvent", function(self, event, unit)
     if event == "PLAYER_SPECIALIZATION_CHANGED" and unit ~= "player" then return end
+    if event == "PLAYER_REGEN_ENABLED" then
+        if pendingUpdate then
+            pendingUpdate = false
+            FI.UpdateMacros()
+        end
+        return
+    end
+    if InCombatLockdown() then
+        pendingUpdate = true
+        return
+    end
     FI.UpdateMacros()
     if FI.MenuFrame and FI.MenuFrame:IsShown() then
         FI.MenuFrame:RefreshInfo()

@@ -16,6 +16,11 @@ Macros are created on login and updated automatically on spec change.
 - Choose the raid mark used by the Mark macro (1–8).
 - Refresh macros manually at any time.
 
+## TODO
+
+- [ ] Play a sound when focus starts casting and your interrupt is available
+- [ ] Announce your assigned mark to the group
+
 ## Notes
 
 - Healers without an interrupt (Holy, Discipline, Restoration, Preservation) will not generate a Kick macro, except Restoration Shaman.
