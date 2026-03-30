@@ -36,6 +36,12 @@ local HEALER_SPEC_IDS = {
 
 local BALANCE_DRUID_SPEC_ID = 102
 
+function FI.Log(msg)
+    if FI_Config.verbose then
+        print(msg)
+    end
+end
+
 function FI.GetInterrupt()
     local _, class = UnitClass("player")
     local currentSpec = GetSpecialization()
@@ -106,7 +112,7 @@ function FI.UpdateMacros()
     end
 
     local kickInfo = spell and (", kick: " .. spell) or ", no kick (healer spec)"
-    print(PREFIX .. C_OK .. "Macros updated (mark " .. FI_Config.markIndex .. kickInfo .. ").|r")
+    FI.Log(PREFIX .. C_OK .. "Macros updated (mark " .. FI_Config.markIndex .. kickInfo .. ").|r")
 end
 
 local pendingUpdate = false

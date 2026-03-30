@@ -23,7 +23,7 @@ end
 
 -- Syncs all visual state of a panel to FI_Config and the current player state.
 -- refs must contain: infoLabel, spellLabel, markLabel, markButtons,
---                    enemyOnlyCheck, markModeDropdown, minimapCheck
+--                    enemyOnlyCheck, markModeDropdown, minimapCheck, verboseCheck
 local function ApplyRefreshToRefs(refs)
     local _, class = UnitClass("player")
     local currentSpec = GetSpecialization()
@@ -43,6 +43,7 @@ local function ApplyRefreshToRefs(refs)
     refs.enemyOnlyCheck:SetChecked(FI_Config.focusEnemyOnly or false)
     UIDropDownMenu_SetSelectedValue(refs.markModeDropdown, FI_Config.markMode)
     refs.minimapCheck:SetChecked(not FI_Config.minimapBtn.hide)
+    refs.verboseCheck:SetChecked(FI_Config.verbose or false)
 end
 
 -- Builds the shared panel content (mark buttons, checkboxes, refresh button, combat state).
@@ -109,7 +110,7 @@ local function BuildPanelContent(parent, cfg)
             SetMarkButtonDesaturated(self, false)
             FI.UpdateMacros()
             markLabel:SetText("Current mark: |T" .. MARKS[self.markIndex].icon .. ":14:14|t " .. MARKS[self.markIndex].name)
-            print(FI.PREFIX .. "|cff00ff00Mark changed to " .. self.markIndex .. " (" .. MARKS[self.markIndex].name .. ").|r")
+            FI.Log(FI.PREFIX .. "|cff00ff00Mark changed to " .. self.markIndex .. " (" .. MARKS[self.markIndex].name .. ").|r")
         end)
 
         btn:SetScript("OnEnter", function(self)
@@ -141,40 +142,38 @@ local function BuildPanelContent(parent, cfg)
 
     -- Dropdown: mark mode
     local markModeLabel = parent:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
-    markModeLabel:SetPoint("TOPLEFT", parent, "TOPLEFT", 16, yBase - 268)
+    markModeLabel:SetPoint("TOPLEFT", parent, "TOPLEFT", 16, yBase - 228)
     markModeLabel:SetText("Mark mode:")
 
     local markModeDropdown = CreateFrame("Frame", nil, parent, "UIDropDownMenuTemplate")
-    markModeDropdown:SetPoint("TOPLEFT", parent, "TOPLEFT", 0, yBase - 284)
+    markModeDropdown:SetPoint("TOPLEFT", parent, "TOPLEFT", 0, yBase - 244)
     UIDropDownMenu_SetWidth(markModeDropdown, 220)
     UIDropDownMenu_SetSelectedValue(markModeDropdown, FI_Config.markMode)
 
     UIDropDownMenu_Initialize(markModeDropdown, function(self)
-    local modes = {
-        { value = "both",      text = "Both (mark + focus)" },
-        { value = "markOnly",  text = "Mark only" },
-        { value = "focusOnly", text = "Focus only" },
-     }
-     for _, entry in ipairs(modes) do
-        local info = UIDropDownMenu_CreateInfo()
-        info.text    = entry.text
-        info.value   = entry.value
-        info.checked = FI_Config.markMode == entry.value
-        info.func    = function(self)
-            FI_Config.markMode = self.value
-            UIDropDownMenu_SetSelectedValue(markModeDropdown, self.value)
-            FI.UpdateMacros()
+        local modes = {
+            { value = "both",      text = "Both (mark + focus)" },
+            { value = "markOnly",  text = "Mark only" },
+            { value = "focusOnly", text = "Focus only" },
+        }
+        for _, entry in ipairs(modes) do
+            local info = UIDropDownMenu_CreateInfo()
+            info.text    = entry.text
+            info.value   = entry.value
+            info.checked = FI_Config.markMode == entry.value
+            info.func    = function(self)
+                FI_Config.markMode = self.value
+                UIDropDownMenu_SetSelectedValue(markModeDropdown, self.value)
+                FI.UpdateMacros()
+            end
+            UIDropDownMenu_AddButton(info)
         end
-        UIDropDownMenu_AddButton(info)
-     end
- end)
-
-
+    end)
 
     -- Checkbox: focus enemy only
     local enemyOnlyCheck = CreateFrame("CheckButton", nil, parent, "UICheckButtonTemplate")
     enemyOnlyCheck:SetSize(26, 26)
-    enemyOnlyCheck:SetPoint("TOPLEFT", parent, "TOPLEFT", 12, yBase - 234)
+    enemyOnlyCheck:SetPoint("TOPLEFT", parent, "TOPLEFT", 12, yBase - 288)
     enemyOnlyCheck:SetChecked(FI_Config.focusEnemyOnly or false)
 
     local enemyOnlyLabel = parent:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
@@ -189,7 +188,7 @@ local function BuildPanelContent(parent, cfg)
     -- Checkbox: show minimap button
     local minimapCheck = CreateFrame("CheckButton", nil, parent, "UICheckButtonTemplate")
     minimapCheck:SetSize(26, 26)
-    minimapCheck:SetPoint("TOPLEFT", parent, "TOPLEFT", 12, yBase - 328)
+    minimapCheck:SetPoint("TOPLEFT", parent, "TOPLEFT", 12, yBase - 322)
     minimapCheck:SetChecked(not FI_Config.minimapBtn.hide)
 
     local minimapLabel = parent:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
@@ -205,10 +204,31 @@ local function BuildPanelContent(parent, cfg)
         end
     end)
 
+    -- Checkbox: verbose chat log
+    local verboseCheck = CreateFrame("CheckButton", nil, parent, "UICheckButtonTemplate")
+    verboseCheck:SetSize(26, 26)
+    verboseCheck:SetPoint("TOPLEFT", parent, "TOPLEFT", 12, yBase - 356)
+    verboseCheck:SetChecked(FI_Config.verbose or false)
+
+    local verboseLabel = parent:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+    verboseLabel:SetPoint("LEFT", verboseCheck, "RIGHT", 4, 0)
+    verboseLabel:SetText("Show chat notifications")
+
+    verboseCheck:SetScript("OnClick", function(self)
+        FI_Config.verbose = self:GetChecked()
+    end)
+    verboseCheck:SetScript("OnEnter", function(self)
+        GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+        GameTooltip:SetText("Show chat notifications", 1, 1, 1)
+        GameTooltip:AddLine("Prints a message in chat whenever\nthe macros are created or updated.", 1, 1, 1, true)
+        GameTooltip:Show()
+    end)
+    verboseCheck:SetScript("OnLeave", function() GameTooltip:Hide() end)
+
     -- Refresh macros button
     local regenBtn = CreateFrame("Button", nil, parent, "UIPanelButtonTemplate")
     regenBtn:SetSize(248, 28)
-    regenBtn:SetPoint("TOPLEFT", parent, "TOPLEFT", 16, yBase - 362)
+    regenBtn:SetPoint("TOPLEFT", parent, "TOPLEFT", 16, yBase - 390)
     regenBtn:SetText("Refresh macros")
     regenBtn:SetScript("OnClick", function()
         FI.UpdateMacros()
@@ -239,6 +259,7 @@ local function BuildPanelContent(parent, cfg)
             minimapCheck:Enable()
             regenBtn:Enable()
         end
+        -- verboseCheck is intentionally not disabled in combat (no macro changes needed)
     end
 
     parent:RegisterEvent("PLAYER_REGEN_DISABLED")
@@ -248,14 +269,15 @@ local function BuildPanelContent(parent, cfg)
     end)
 
     return {
-        infoLabel      = infoLabel,
-        spellLabel     = spellLabel,
-        markLabel      = markLabel,
-        markButtons    = markButtons,
+        infoLabel        = infoLabel,
+        spellLabel       = spellLabel,
+        markLabel        = markLabel,
+        markButtons      = markButtons,
         enemyOnlyCheck   = enemyOnlyCheck,
         markModeDropdown = markModeDropdown,
         minimapCheck     = minimapCheck,
-        setCombatState = SetCombatState,
+        verboseCheck     = verboseCheck,
+        setCombatState   = SetCombatState,
     }
 end
 
@@ -265,7 +287,7 @@ local function CreateMenu()
     if FI.MenuFrame then return end
 
     FI.MenuFrame = CreateFrame("Frame", "FocusInterruptMenu", UIParent, "BasicFrameTemplateWithInset")
-    FI.MenuFrame:SetSize(280, 446)
+    FI.MenuFrame:SetSize(280, 480)
     FI.MenuFrame:SetPoint("CENTER")
     FI.MenuFrame:SetMovable(true)
     FI.MenuFrame:EnableMouse(true)
@@ -320,7 +342,7 @@ local function CreateOptionsPanel()
     local refs = BuildPanelContent(panel, {
         yBase        = -40,
         sepWidth     = 500,
-        combatAnchor = { "TOPLEFT", "TOPLEFT", 16, -438 },
+        combatAnchor = { "TOPLEFT", "TOPLEFT", 16, -472 },
     })
 
     panel:SetScript("OnShow", function()

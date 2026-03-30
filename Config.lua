@@ -1,7 +1,7 @@
 FocusInterruptAddon = FocusInterruptAddon or {}
 FocusInterruptAddon.TITLE = "FocusInterrupt"
 
-local DB_VERSION = 4
+local DB_VERSION = 5
 
 FI_Config = FI_Config or {
     dbVersion = DB_VERSION,
@@ -9,6 +9,7 @@ FI_Config = FI_Config or {
     minimapBtn = { hide = false },
     focusEnemyOnly = false,
     markMode = "both", -- "both", "markOnly", "focusOnly"
+    verbose = false,
 }
 
 -- Migrate saved config from older versions
@@ -20,6 +21,7 @@ migrationFrame:SetScript("OnEvent", function(self, event, addonName)
             FI_Config.focusEnemyOnly = FI_Config.focusEnemyOnly or false
             FI_Config.markMode = FI_Config.markOnly and "markOnly" or (FI_Config.markMode or "both")
             FI_Config.markOnly = nil
+            FI_Config.verbose = FI_Config.verbose or false
             FI_Config.dbVersion = DB_VERSION
         end
         self:UnregisterEvent("ADDON_LOADED")
