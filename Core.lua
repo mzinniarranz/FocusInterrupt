@@ -74,14 +74,10 @@ function FI.UpdateMacros()
     end
 
     local spell = FI.GetInterrupt()
-
-    if not spell then
-        print(PREFIX .. C_ERROR .. "Your spec has no interrupt. Macros not generated.|r")
-        return
-    end
+    local markMode = FI_Config.markMode or "both"
 
     local markBody
-    if FI_Config.markOnly then
+    if markMode == "markOnly" then
         markBody = "/tm [@mouseover,exists,nodead][] " .. FI_Config.markIndex
     else
         local stopLine = FI_Config.focusEnemyOnly
@@ -92,18 +88,25 @@ function FI.UpdateMacros()
             and "[@mouseover,exists,nodead,harm][@target,exists,nodead,harm]"
             or  "[@mouseover,exists,nodead][]"
 
-        markBody = stopLine ..
-                   "/focus " .. condition .. "\n" ..
-                   "/tm " .. condition .. " " .. FI_Config.markIndex
+        if markMode == "focusOnly" then
+            markBody = stopLine .. "/focus " .. condition
+        else -- "both"
+            markBody = stopLine ..
+                       "/focus " .. condition .. "\n" ..
+                       "/tm " .. condition .. " " .. FI_Config.markIndex
+        end
     end
 
     if not UpsertMacro("0FI-Mark", "ability_hunter_markedfordeath", markBody) then return end
 
-    local kickBody = "#showtooltip " .. spell .. "\n" ..
-                     "/cast [@focus,exists][@target] " .. spell
-    UpsertMacro("0FI-Kick", nil, kickBody)
+    if spell then
+        local kickBody = "#showtooltip " .. spell .. "\n" ..
+                         "/cast [@focus,exists][@target] " .. spell
+        UpsertMacro("0FI-Kick", nil, kickBody)
+    end
 
-    print(PREFIX .. C_OK .. "Macros updated (mark " .. FI_Config.markIndex .. ", kick: " .. spell .. ").|r")
+    local kickInfo = spell and (", kick: " .. spell) or ", no kick (healer spec)"
+    print(PREFIX .. C_OK .. "Macros updated (mark " .. FI_Config.markIndex .. kickInfo .. ").|r")
 end
 
 local pendingUpdate = false
