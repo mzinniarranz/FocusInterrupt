@@ -2,16 +2,14 @@
 
 local FI = FocusInterruptAddon
 
-local MARKS = {
-    { index = 1, name = "Star",     icon = "Interface\\TargetingFrame\\UI-RaidTargetingIcon_1" },
-    { index = 2, name = "Circle",   icon = "Interface\\TargetingFrame\\UI-RaidTargetingIcon_2" },
-    { index = 3, name = "Diamond",  icon = "Interface\\TargetingFrame\\UI-RaidTargetingIcon_3" },
-    { index = 4, name = "Triangle", icon = "Interface\\TargetingFrame\\UI-RaidTargetingIcon_4" },
-    { index = 5, name = "Moon",     icon = "Interface\\TargetingFrame\\UI-RaidTargetingIcon_5" },
-    { index = 6, name = "Square",   icon = "Interface\\TargetingFrame\\UI-RaidTargetingIcon_6" },
-    { index = 7, name = "Cross",    icon = "Interface\\TargetingFrame\\UI-RaidTargetingIcon_7" },
-    { index = 8, name = "Skull",    icon = "Interface\\TargetingFrame\\UI-RaidTargetingIcon_8" },
-}
+local MARKS = {}
+for i = 1, 8 do
+    MARKS[i] = {
+        index = i,
+        name  = FI.MARK_NAMES[i],
+        icon  = "Interface\\TargetingFrame\\UI-RaidTargetingIcon_" .. i,
+    }
+end
 
 local function SetMarkButtonDesaturated(btn, desaturated)
     for _, region in ipairs({btn:GetRegions()}) do
@@ -23,7 +21,7 @@ end
 
 -- Syncs all visual state of a panel to FI_Config and the current player state.
 -- refs must contain: infoLabel, spellLabel, markLabel, markButtons,
---                    enemyOnlyCheck, markModeDropdown, minimapCheck, verboseCheck
+--                    enemyOnlyCheck, markModeDropdown, minimapCheck, verboseCheck, announceCheck
 local function ApplyRefreshToRefs(refs)
     local _, class = UnitClass("player")
     local currentSpec = GetSpecialization()
@@ -44,6 +42,7 @@ local function ApplyRefreshToRefs(refs)
     UIDropDownMenu_SetSelectedValue(refs.markModeDropdown, FI_Config.markMode)
     refs.minimapCheck:SetChecked(not FI_Config.minimapBtn.hide)
     refs.verboseCheck:SetChecked(FI_Config.verbose or false)
+    refs.announceCheck:SetChecked(FI_Config.readyCheckAnnounce or false)
 end
 
 -- Builds the shared panel content (mark buttons, checkboxes, refresh button, combat state).
@@ -185,10 +184,31 @@ local function BuildPanelContent(parent, cfg)
         FI.UpdateMacros()
     end)
 
+    -- Checkbox: announce mark on ready check
+    local announceCheck = CreateFrame("CheckButton", nil, parent, "UICheckButtonTemplate")
+    announceCheck:SetSize(26, 26)
+    announceCheck:SetPoint("TOPLEFT", parent, "TOPLEFT", 12, yBase - 322)
+    announceCheck:SetChecked(FI_Config.readyCheckAnnounce or false)
+
+    local announceLabel = parent:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+    announceLabel:SetPoint("LEFT", announceCheck, "RIGHT", 4, 0)
+    announceLabel:SetText("Announce mark on ready check")
+
+    announceCheck:SetScript("OnClick", function(self)
+        FI_Config.readyCheckAnnounce = self:GetChecked()
+    end)
+    announceCheck:SetScript("OnEnter", function(self)
+        GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+        GameTooltip:SetText("Announce mark on ready check", 1, 1, 1)
+        GameTooltip:AddLine("Posts the interrupt mark to group chat\nwhen a ready check fires (5-man dungeons only).", 1, 1, 1, true)
+        GameTooltip:Show()
+    end)
+    announceCheck:SetScript("OnLeave", function() GameTooltip:Hide() end)
+
     -- Checkbox: show minimap button
     local minimapCheck = CreateFrame("CheckButton", nil, parent, "UICheckButtonTemplate")
     minimapCheck:SetSize(26, 26)
-    minimapCheck:SetPoint("TOPLEFT", parent, "TOPLEFT", 12, yBase - 322)
+    minimapCheck:SetPoint("TOPLEFT", parent, "TOPLEFT", 12, yBase - 356)
     minimapCheck:SetChecked(not FI_Config.minimapBtn.hide)
 
     local minimapLabel = parent:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
@@ -207,7 +227,7 @@ local function BuildPanelContent(parent, cfg)
     -- Checkbox: verbose chat log
     local verboseCheck = CreateFrame("CheckButton", nil, parent, "UICheckButtonTemplate")
     verboseCheck:SetSize(26, 26)
-    verboseCheck:SetPoint("TOPLEFT", parent, "TOPLEFT", 12, yBase - 356)
+    verboseCheck:SetPoint("TOPLEFT", parent, "TOPLEFT", 12, yBase - 390)
     verboseCheck:SetChecked(FI_Config.verbose or false)
 
     local verboseLabel = parent:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
@@ -228,7 +248,7 @@ local function BuildPanelContent(parent, cfg)
     -- Refresh macros button
     local regenBtn = CreateFrame("Button", nil, parent, "UIPanelButtonTemplate")
     regenBtn:SetSize(248, 28)
-    regenBtn:SetPoint("TOPLEFT", parent, "TOPLEFT", 16, yBase - 390)
+    regenBtn:SetPoint("TOPLEFT", parent, "TOPLEFT", 16, yBase - 424)
     regenBtn:SetText("Refresh macros")
     regenBtn:SetScript("OnClick", function()
         FI.UpdateMacros()
@@ -259,7 +279,7 @@ local function BuildPanelContent(parent, cfg)
             minimapCheck:Enable()
             regenBtn:Enable()
         end
-        -- verboseCheck is intentionally not disabled in combat (no macro changes needed)
+        -- verboseCheck and announceCheck are intentionally not disabled in combat (no macro changes needed)
     end
 
     parent:RegisterEvent("PLAYER_REGEN_DISABLED")
@@ -277,6 +297,7 @@ local function BuildPanelContent(parent, cfg)
         markModeDropdown = markModeDropdown,
         minimapCheck     = minimapCheck,
         verboseCheck     = verboseCheck,
+        announceCheck    = announceCheck,
         setCombatState   = SetCombatState,
     }
 end
@@ -287,7 +308,7 @@ local function CreateMenu()
     if FI.MenuFrame then return end
 
     FI.MenuFrame = CreateFrame("Frame", "FocusInterruptMenu", UIParent, "BasicFrameTemplateWithInset")
-    FI.MenuFrame:SetSize(280, 480)
+    FI.MenuFrame:SetSize(280, 514)
     FI.MenuFrame:SetPoint("CENTER")
     FI.MenuFrame:SetMovable(true)
     FI.MenuFrame:EnableMouse(true)
@@ -342,7 +363,7 @@ local function CreateOptionsPanel()
     local refs = BuildPanelContent(panel, {
         yBase        = -40,
         sepWidth     = 500,
-        combatAnchor = { "TOPLEFT", "TOPLEFT", 16, -472 },
+        combatAnchor = { "TOPLEFT", "TOPLEFT", 16, -506 },
     })
 
     panel:SetScript("OnShow", function()

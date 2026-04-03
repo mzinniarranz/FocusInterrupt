@@ -36,6 +36,11 @@ local HEALER_SPEC_IDS = {
 
 local BALANCE_DRUID_SPEC_ID = 102
 
+FI.MARK_NAMES = {
+    "Star", "Circle", "Diamond", "Triangle",
+    "Moon", "Square", "Cross", "Skull",
+}
+
 function FI.Log(msg)
     if FI_Config.verbose then
         print(msg)
@@ -121,7 +126,17 @@ local f = CreateFrame("Frame")
 f:RegisterEvent("PLAYER_LOGIN")
 f:RegisterEvent("PLAYER_SPECIALIZATION_CHANGED")
 f:RegisterEvent("PLAYER_REGEN_ENABLED")
+f:RegisterEvent("READY_CHECK")
 f:SetScript("OnEvent", function(self, event, unit)
+    if event == "READY_CHECK" then
+        if not FI_Config.readyCheckAnnounce then return end
+        if FI_Config.markMode == "focusOnly" then return end
+        if select(2, GetInstanceInfo()) ~= "party" then return end
+        local idx = FI_Config.markIndex
+        local channel = IsInGroup(LE_PARTY_CATEGORY_INSTANCE) and "INSTANCE_CHAT" or "PARTY"
+        SendChatMessage("Interrupt mark: {rt" .. idx .. "} " .. FI.MARK_NAMES[idx], channel)
+        return
+    end
     if event == "PLAYER_SPECIALIZATION_CHANGED" and unit ~= "player" then return end
     if event == "PLAYER_REGEN_ENABLED" then
         if pendingUpdate then
