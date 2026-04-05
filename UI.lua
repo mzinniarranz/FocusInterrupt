@@ -40,9 +40,15 @@ local function ApplyRefreshToRefs(refs)
     end
     refs.enemyOnlyCheck:SetChecked(FI_Config.focusEnemyOnly or false)
     UIDropDownMenu_SetSelectedValue(refs.markModeDropdown, FI_Config.markMode)
+    UIDropDownMenu_SetText(refs.markModeDropdown, refs.getMarkModeText(FI_Config.markMode))
     refs.minimapCheck:SetChecked(not FI_Config.minimapBtn.hide)
     refs.verboseCheck:SetChecked(FI_Config.verbose or false)
     refs.announceCheck:SetChecked(FI_Config.readyCheckAnnounce or false)
+    -- TODO: cast alert UI disabled
+    -- refs.castAlertCheck:SetChecked(FI_Config.castAlertSound or false)
+    -- local soundIdx = FI.ValidAlertSoundIndex()
+    -- UIDropDownMenu_SetSelectedValue(refs.alertSoundDropdown, soundIdx)
+    -- UIDropDownMenu_SetText(refs.alertSoundDropdown, FI.ALERT_SOUNDS[soundIdx].name)
 end
 
 -- Builds the shared panel content (mark buttons, checkboxes, refresh button, combat state).
@@ -146,16 +152,25 @@ local function BuildPanelContent(parent, cfg)
 
     local markModeDropdown = CreateFrame("Frame", nil, parent, "UIDropDownMenuTemplate")
     markModeDropdown:SetPoint("TOPLEFT", parent, "TOPLEFT", 0, yBase - 244)
+    local MARK_MODES = {
+        { value = "both",      text = "Both (mark + focus)" },
+        { value = "markOnly",  text = "Mark only" },
+        { value = "focusOnly", text = "Focus only" },
+    }
+
+    local function GetMarkModeText(value)
+        for _, m in ipairs(MARK_MODES) do
+            if m.value == value then return m.text end
+        end
+        return MARK_MODES[1].text
+    end
+
     UIDropDownMenu_SetWidth(markModeDropdown, 220)
     UIDropDownMenu_SetSelectedValue(markModeDropdown, FI_Config.markMode)
+    UIDropDownMenu_SetText(markModeDropdown, GetMarkModeText(FI_Config.markMode))
 
     UIDropDownMenu_Initialize(markModeDropdown, function(self)
-        local modes = {
-            { value = "both",      text = "Both (mark + focus)" },
-            { value = "markOnly",  text = "Mark only" },
-            { value = "focusOnly", text = "Focus only" },
-        }
-        for _, entry in ipairs(modes) do
+        for _, entry in ipairs(MARK_MODES) do
             local info = UIDropDownMenu_CreateInfo()
             info.text    = entry.text
             info.value   = entry.value
@@ -163,6 +178,7 @@ local function BuildPanelContent(parent, cfg)
             info.func    = function(self)
                 FI_Config.markMode = self.value
                 UIDropDownMenu_SetSelectedValue(markModeDropdown, self.value)
+                UIDropDownMenu_SetText(markModeDropdown, entry.text)
                 FI.UpdateMacros()
             end
             UIDropDownMenu_AddButton(info)
@@ -204,6 +220,61 @@ local function BuildPanelContent(parent, cfg)
         GameTooltip:Show()
     end)
     announceCheck:SetScript("OnLeave", function() GameTooltip:Hide() end)
+
+    -- TODO: Cast alert UI disabled – feature not working reliably, needs more testing
+    --[[ Checkbox: sound alert on focus interruptible cast
+    local castAlertCheck = CreateFrame("CheckButton", nil, parent, "UICheckButtonTemplate")
+    castAlertCheck:SetSize(26, 26)
+    castAlertCheck:SetPoint("TOPLEFT", parent, "TOPLEFT", 12, yBase - 356)
+    castAlertCheck:SetChecked(FI_Config.castAlertSound or false)
+
+    local castAlertLabel = parent:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+    castAlertLabel:SetPoint("LEFT", castAlertCheck, "RIGHT", 4, 0)
+    castAlertLabel:SetText("Play sound on focus cast |cffff8800(Beta)|r")
+
+    castAlertCheck:SetScript("OnClick", function(self)
+        FI_Config.castAlertSound = self:GetChecked()
+    end)
+    castAlertCheck:SetScript("OnEnter", function(self)
+        GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+        GameTooltip:SetText("Play sound on focus cast (Beta)", 1, 1, 1)
+        GameTooltip:AddLine("Plays a sound when your focus target starts\nan interruptible cast and your interrupt\nis off cooldown.", 1, 1, 1, true)
+        GameTooltip:Show()
+    end)
+    castAlertCheck:SetScript("OnLeave", function() GameTooltip:Hide() end)
+
+    -- Dropdown: alert sound selection
+    local alertSoundDropdown = CreateFrame("Frame", nil, parent, "UIDropDownMenuTemplate")
+    alertSoundDropdown:SetPoint("TOPLEFT", parent, "TOPLEFT", 0, yBase - 386)
+    UIDropDownMenu_SetWidth(alertSoundDropdown, 150)
+    local initSoundIdx = FI.ValidAlertSoundIndex()
+    UIDropDownMenu_SetSelectedValue(alertSoundDropdown, initSoundIdx)
+    UIDropDownMenu_SetText(alertSoundDropdown, FI.ALERT_SOUNDS[initSoundIdx].name)
+
+    UIDropDownMenu_Initialize(alertSoundDropdown, function(self)
+        for i, sound in ipairs(FI.ALERT_SOUNDS) do
+            local info = UIDropDownMenu_CreateInfo()
+            info.text    = sound.name
+            info.value   = i
+            info.checked = FI_Config.alertSoundIndex == i
+            info.func    = function(self)
+                FI_Config.alertSoundIndex = self.value
+                UIDropDownMenu_SetSelectedValue(alertSoundDropdown, self.value)
+                UIDropDownMenu_SetText(alertSoundDropdown, sound.name)
+            end
+            UIDropDownMenu_AddButton(info)
+        end
+    end)
+
+    -- Test sound button
+    local testSoundBtn = CreateFrame("Button", nil, parent, "UIPanelButtonTemplate")
+    testSoundBtn:SetSize(60, 26)
+    testSoundBtn:SetPoint("LEFT", alertSoundDropdown, "RIGHT", -10, 2)
+    testSoundBtn:SetText("Test")
+    testSoundBtn:SetScript("OnClick", function()
+        FI.PlayAlertSound()
+    end)
+    --]]
 
     -- Checkbox: show minimap button
     local minimapCheck = CreateFrame("CheckButton", nil, parent, "UICheckButtonTemplate")
@@ -279,7 +350,7 @@ local function BuildPanelContent(parent, cfg)
             minimapCheck:Enable()
             regenBtn:Enable()
         end
-        -- verboseCheck and announceCheck are intentionally not disabled in combat (no macro changes needed)
+        -- verboseCheck, announceCheck and castAlertCheck are intentionally not disabled in combat (no macro changes needed)
     end
 
     parent:RegisterEvent("PLAYER_REGEN_DISABLED")
@@ -298,6 +369,10 @@ local function BuildPanelContent(parent, cfg)
         minimapCheck     = minimapCheck,
         verboseCheck     = verboseCheck,
         announceCheck    = announceCheck,
+        -- TODO: cast alert UI disabled
+        -- castAlertCheck   = castAlertCheck,
+        -- alertSoundDropdown = alertSoundDropdown,
+        getMarkModeText  = GetMarkModeText,
         setCombatState   = SetCombatState,
     }
 end
@@ -308,7 +383,7 @@ local function CreateMenu()
     if FI.MenuFrame then return end
 
     FI.MenuFrame = CreateFrame("Frame", "FocusInterruptMenu", UIParent, "BasicFrameTemplateWithInset")
-    FI.MenuFrame:SetSize(280, 514)
+    FI.MenuFrame:SetSize(280, 510)
     FI.MenuFrame:SetPoint("CENTER")
     FI.MenuFrame:SetMovable(true)
     FI.MenuFrame:EnableMouse(true)
@@ -363,7 +438,7 @@ local function CreateOptionsPanel()
     local refs = BuildPanelContent(panel, {
         yBase        = -40,
         sepWidth     = 500,
-        combatAnchor = { "TOPLEFT", "TOPLEFT", 16, -506 },
+        combatAnchor = { "TOPLEFT", "TOPLEFT", 16, -428 },
     })
 
     panel:SetScript("OnShow", function()
