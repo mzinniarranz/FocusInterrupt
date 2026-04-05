@@ -120,25 +120,36 @@ function FI.UpdateMacros()
     local spell = FI.GetInterrupt()
     local markMode = FI_Config.markMode or "both"
 
+    local useMouseover = FI_Config.focusMouseover
+    local enemyOnly   = FI_Config.focusEnemyOnly
+
+    local condition
+    local stopLine = ""
+
+    if useMouseover then
+        if enemyOnly then
+            stopLine  = "/stopmacro [@mouseover,exists,nodead,noharm]\n"
+            condition = "[@mouseover,exists,nodead,harm][@target,exists,nodead,harm]"
+        else
+            condition = "[@mouseover,exists,nodead][]"
+        end
+    else
+        if enemyOnly then
+            condition = "[@target,exists,nodead,harm]"
+        else
+            condition = "[@target,exists,nodead]"
+        end
+    end
+
     local markBody
     if markMode == "markOnly" then
-        markBody = "/tm [@mouseover,exists,nodead][] " .. FI_Config.markIndex
-    else
-        local stopLine = FI_Config.focusEnemyOnly
-            and "/stopmacro [@mouseover,exists,nodead,noharm]\n"
-            or  ""
-
-        local condition = FI_Config.focusEnemyOnly
-            and "[@mouseover,exists,nodead,harm][@target,exists,nodead,harm]"
-            or  "[@mouseover,exists,nodead][]"
-
-        if markMode == "focusOnly" then
-            markBody = stopLine .. "/focus " .. condition
-        else -- "both"
-            markBody = stopLine ..
-                       "/focus " .. condition .. "\n" ..
-                       "/tm " .. condition .. " " .. FI_Config.markIndex
-        end
+        markBody = "/tm " .. condition .. " " .. FI_Config.markIndex
+    elseif markMode == "focusOnly" then
+        markBody = stopLine .. "/focus " .. condition
+    else -- "both"
+        markBody = stopLine ..
+                   "/focus " .. condition .. "\n" ..
+                   "/tm " .. condition .. " " .. FI_Config.markIndex
     end
 
     if not UpsertMacro("0FI-Mark", "ability_hunter_markedfordeath", markBody) then return end

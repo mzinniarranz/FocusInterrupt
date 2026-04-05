@@ -1,13 +1,14 @@
 FocusInterruptAddon = FocusInterruptAddon or {}
 FocusInterruptAddon.TITLE = "FocusInterrupt"
 
-local DB_VERSION = 7
+local DB_VERSION = 8
 
 FI_Config = FI_Config or {
     dbVersion = DB_VERSION,
     markIndex = 1,
     minimapBtn = { hide = false },
     focusEnemyOnly = false,
+    focusMouseover = true,
     markMode = "both", -- "both", "markOnly", "focusOnly"
     verbose = false,
     readyCheckAnnounce = true,
@@ -26,6 +27,7 @@ migrationFrame:SetScript("OnEvent", function(self, event, addonName)
             FI_Config.markOnly = nil
             FI_Config.verbose = FI_Config.verbose or false
             if FI_Config.readyCheckAnnounce == nil then FI_Config.readyCheckAnnounce = true end
+            if FI_Config.focusMouseover == nil then FI_Config.focusMouseover = true end
             FI_Config.castAlertSound = FI_Config.castAlertSound or false
             FI_Config.alertSoundIndex = FI_Config.alertSoundIndex or 6
             FI_Config.dbVersion = DB_VERSION

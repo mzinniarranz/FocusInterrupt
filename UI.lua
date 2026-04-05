@@ -21,7 +21,7 @@ end
 
 -- Syncs all visual state of a panel to FI_Config and the current player state.
 -- refs must contain: infoLabel, spellLabel, markLabel, markButtons,
---                    enemyOnlyCheck, markModeDropdown, minimapCheck, verboseCheck, announceCheck
+--                    enemyOnlyCheck, mouseoverCheck, markModeDropdown, minimapCheck, verboseCheck, announceCheck
 local function ApplyRefreshToRefs(refs)
     local _, class = UnitClass("player")
     local currentSpec = GetSpecialization()
@@ -44,6 +44,7 @@ local function ApplyRefreshToRefs(refs)
     refs.minimapCheck:SetChecked(not FI_Config.minimapBtn.hide)
     refs.verboseCheck:SetChecked(FI_Config.verbose or false)
     refs.announceCheck:SetChecked(FI_Config.readyCheckAnnounce or false)
+    refs.mouseoverCheck:SetChecked(FI_Config.focusMouseover)
     -- TODO: cast alert UI disabled
     -- refs.castAlertCheck:SetChecked(FI_Config.castAlertSound or false)
     -- local soundIdx = FI.ValidAlertSoundIndex()
@@ -221,6 +222,28 @@ local function BuildPanelContent(parent, cfg)
     end)
     announceCheck:SetScript("OnLeave", function() GameTooltip:Hide() end)
 
+    -- Checkbox: mouseover targeting
+    local mouseoverCheck = CreateFrame("CheckButton", nil, parent, "UICheckButtonTemplate")
+    mouseoverCheck:SetSize(26, 26)
+    mouseoverCheck:SetPoint("TOPLEFT", parent, "TOPLEFT", 12, yBase - 356)
+    mouseoverCheck:SetChecked(FI_Config.focusMouseover)
+
+    local mouseoverLabel = parent:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+    mouseoverLabel:SetPoint("LEFT", mouseoverCheck, "RIGHT", 4, 0)
+    mouseoverLabel:SetText("Use mouseover targeting")
+
+    mouseoverCheck:SetScript("OnClick", function(self)
+        FI_Config.focusMouseover = self:GetChecked()
+        FI.UpdateMacros()
+    end)
+    mouseoverCheck:SetScript("OnEnter", function(self)
+        GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+        GameTooltip:SetText("Use mouseover targeting", 1, 1, 1)
+        GameTooltip:AddLine("When enabled, the macro targets your mouseover\nfirst, falling back to your current target.\nWhen disabled, it only targets your current target.", 1, 1, 1, true)
+        GameTooltip:Show()
+    end)
+    mouseoverCheck:SetScript("OnLeave", function() GameTooltip:Hide() end)
+
     -- TODO: Cast alert UI disabled – feature not working reliably, needs more testing
     --[[ Checkbox: sound alert on focus interruptible cast
     local castAlertCheck = CreateFrame("CheckButton", nil, parent, "UICheckButtonTemplate")
@@ -279,7 +302,7 @@ local function BuildPanelContent(parent, cfg)
     -- Checkbox: show minimap button
     local minimapCheck = CreateFrame("CheckButton", nil, parent, "UICheckButtonTemplate")
     minimapCheck:SetSize(26, 26)
-    minimapCheck:SetPoint("TOPLEFT", parent, "TOPLEFT", 12, yBase - 356)
+    minimapCheck:SetPoint("TOPLEFT", parent, "TOPLEFT", 12, yBase - 390)
     minimapCheck:SetChecked(not FI_Config.minimapBtn.hide)
 
     local minimapLabel = parent:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
@@ -298,7 +321,7 @@ local function BuildPanelContent(parent, cfg)
     -- Checkbox: verbose chat log
     local verboseCheck = CreateFrame("CheckButton", nil, parent, "UICheckButtonTemplate")
     verboseCheck:SetSize(26, 26)
-    verboseCheck:SetPoint("TOPLEFT", parent, "TOPLEFT", 12, yBase - 390)
+    verboseCheck:SetPoint("TOPLEFT", parent, "TOPLEFT", 12, yBase - 424)
     verboseCheck:SetChecked(FI_Config.verbose or false)
 
     local verboseLabel = parent:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
@@ -319,7 +342,7 @@ local function BuildPanelContent(parent, cfg)
     -- Refresh macros button
     local regenBtn = CreateFrame("Button", nil, parent, "UIPanelButtonTemplate")
     regenBtn:SetSize(248, 28)
-    regenBtn:SetPoint("TOPLEFT", parent, "TOPLEFT", 16, yBase - 424)
+    regenBtn:SetPoint("TOPLEFT", parent, "TOPLEFT", 16, yBase - 458)
     regenBtn:SetText("Refresh macros")
     regenBtn:SetScript("OnClick", function()
         FI.UpdateMacros()
@@ -343,14 +366,16 @@ local function BuildPanelContent(parent, cfg)
         end
         if inCombat then
             enemyOnlyCheck:Disable()
+            mouseoverCheck:Disable()
             minimapCheck:Disable()
             regenBtn:Disable()
         else
             enemyOnlyCheck:Enable()
+            mouseoverCheck:Enable()
             minimapCheck:Enable()
             regenBtn:Enable()
         end
-        -- verboseCheck, announceCheck and castAlertCheck are intentionally not disabled in combat (no macro changes needed)
+        -- verboseCheck and announceCheck are intentionally not disabled in combat (no macro changes needed)
     end
 
     parent:RegisterEvent("PLAYER_REGEN_DISABLED")
@@ -365,6 +390,7 @@ local function BuildPanelContent(parent, cfg)
         markLabel        = markLabel,
         markButtons      = markButtons,
         enemyOnlyCheck   = enemyOnlyCheck,
+        mouseoverCheck   = mouseoverCheck,
         markModeDropdown = markModeDropdown,
         minimapCheck     = minimapCheck,
         verboseCheck     = verboseCheck,
@@ -383,7 +409,7 @@ local function CreateMenu()
     if FI.MenuFrame then return end
 
     FI.MenuFrame = CreateFrame("Frame", "FocusInterruptMenu", UIParent, "BasicFrameTemplateWithInset")
-    FI.MenuFrame:SetSize(280, 510)
+    FI.MenuFrame:SetSize(280, 544)
     FI.MenuFrame:SetPoint("CENTER")
     FI.MenuFrame:SetMovable(true)
     FI.MenuFrame:EnableMouse(true)
@@ -438,7 +464,7 @@ local function CreateOptionsPanel()
     local refs = BuildPanelContent(panel, {
         yBase        = -40,
         sepWidth     = 500,
-        combatAnchor = { "TOPLEFT", "TOPLEFT", 16, -428 },
+        combatAnchor = { "TOPLEFT", "TOPLEFT", 16, -462 },
     })
 
     panel:SetScript("OnShow", function()
