@@ -395,33 +395,16 @@ local function BuildPanelContent(parent, cfg)
     markNameInput:SetMaxLetters(16)
     markNameInput:SetText(FI_Config.markMacroName or "0FI-Mark")
 
-    local function SaveMarkName()
-        local text = strtrim(markNameInput:GetText())
-        if text == "" then text = "0FI-Mark" end
-        markNameInput:SetText(text)
-        FI_Config.markMacroName = text
-        markNameInput:ClearFocus()
-        FI.UpdateMacros()
-    end
-
-    local markNameSaveBtn = CreateFrame("Button", nil, parent, "UIPanelButtonTemplate")
-    markNameSaveBtn:SetSize(50, 22)
-    markNameSaveBtn:SetPoint("LEFT", markNameInput, "RIGHT", 4, 0)
-    markNameSaveBtn:SetText("Save")
-    markNameSaveBtn:SetScript("OnClick", SaveMarkName)
-
     local markCharCount = parent:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
     markCharCount:SetPoint("TOPLEFT", markNameInput, "BOTTOMLEFT", 0, -2)
     markCharCount:SetTextColor(0.5, 0.5, 0.5)
     markCharCount:SetText(#(FI_Config.markMacroName or "0FI-Mark") .. "/16 — Leave empty to reset to default")
 
-    markNameInput:SetScript("OnTextChanged", function(self)
+    markNameInput:SetScript("OnTextChanged", function(self, userInput)
+        if userInput then
+            markCharCount:SetTextColor(0.5, 0.5, 0.5)
+        end
         markCharCount:SetText(#self:GetText() .. "/16 — Leave empty to reset to default")
-    end)
-    markNameInput:SetScript("OnEnterPressed", function() SaveMarkName() end)
-    markNameInput:SetScript("OnEscapePressed", function(self)
-        self:SetText(FI_Config.markMacroName or "0FI-Mark")
-        self:ClearFocus()
     end)
 
     -- Input: kick macro name
@@ -436,9 +419,56 @@ local function BuildPanelContent(parent, cfg)
     kickNameInput:SetMaxLetters(16)
     kickNameInput:SetText(FI_Config.kickMacroName or "0FI-Kick")
 
+    local kickCharCount = parent:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+    kickCharCount:SetPoint("TOPLEFT", kickNameInput, "BOTTOMLEFT", 0, -2)
+    kickCharCount:SetTextColor(0.5, 0.5, 0.5)
+    kickCharCount:SetText(#(FI_Config.kickMacroName or "0FI-Kick") .. "/16 — Leave empty to reset to default")
+
+    kickNameInput:SetScript("OnTextChanged", function(self, userInput)
+        if userInput then
+            kickCharCount:SetTextColor(0.5, 0.5, 0.5)
+        end
+        kickCharCount:SetText(#self:GetText() .. "/16 — Leave empty to reset to default")
+    end)
+
+    local function SaveMarkName()
+        local text = strtrim(markNameInput:GetText())
+        if text == "" then text = "0FI-Mark" end
+        local kickName = FI_Config.kickMacroName or "0FI-Kick"
+        if text == kickName then
+            markNameInput:SetText(FI_Config.markMacroName or "0FI-Mark")
+            markNameInput:ClearFocus()
+            markCharCount:SetTextColor(1, 0.27, 0.27)
+            return
+        end
+        markNameInput:SetText(text)
+        FI_Config.markMacroName = text
+        markNameInput:ClearFocus()
+        FI.UpdateMacros()
+    end
+
+    local markNameSaveBtn = CreateFrame("Button", nil, parent, "UIPanelButtonTemplate")
+    markNameSaveBtn:SetSize(50, 22)
+    markNameSaveBtn:SetPoint("LEFT", markNameInput, "RIGHT", 4, 0)
+    markNameSaveBtn:SetText("Save")
+    markNameSaveBtn:SetScript("OnClick", SaveMarkName)
+
+    markNameInput:SetScript("OnEnterPressed", function() SaveMarkName() end)
+    markNameInput:SetScript("OnEscapePressed", function(self)
+        self:SetText(FI_Config.markMacroName or "0FI-Mark")
+        self:ClearFocus()
+    end)
+
     local function SaveKickName()
         local text = strtrim(kickNameInput:GetText())
         if text == "" then text = "0FI-Kick" end
+        local markName = FI_Config.markMacroName or "0FI-Mark"
+        if text == markName then
+            kickNameInput:SetText(FI_Config.kickMacroName or "0FI-Kick")
+            kickNameInput:ClearFocus()
+            kickCharCount:SetTextColor(1, 0.27, 0.27)
+            return
+        end
         kickNameInput:SetText(text)
         FI_Config.kickMacroName = text
         kickNameInput:ClearFocus()
@@ -451,14 +481,6 @@ local function BuildPanelContent(parent, cfg)
     kickNameSaveBtn:SetText("Save")
     kickNameSaveBtn:SetScript("OnClick", SaveKickName)
 
-    local kickCharCount = parent:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
-    kickCharCount:SetPoint("TOPLEFT", kickNameInput, "BOTTOMLEFT", 0, -2)
-    kickCharCount:SetTextColor(0.5, 0.5, 0.5)
-    kickCharCount:SetText(#(FI_Config.kickMacroName or "0FI-Kick") .. "/16 — Leave empty to reset to default")
-
-    kickNameInput:SetScript("OnTextChanged", function(self)
-        kickCharCount:SetText(#self:GetText() .. "/16 — Leave empty to reset to default")
-    end)
     kickNameInput:SetScript("OnEnterPressed", function() SaveKickName() end)
     kickNameInput:SetScript("OnEscapePressed", function(self)
         self:SetText(FI_Config.kickMacroName or "0FI-Kick")

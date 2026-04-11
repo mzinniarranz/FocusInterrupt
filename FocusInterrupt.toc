@@ -1,6 +1,6 @@
 ## Interface: 120001
 ## Title: FocusInterrupt
-## Version: 1.3.2
+## Version: 1.3.3
 ## Author: Marc Zinni Arranz
 ## Notes: Auto-generates focus interrupt and mark macros based on your class and spec.
 ## X-Curse-Project-ID: 1494325
