@@ -553,7 +553,7 @@ local function CreateMenu()
     FI.MenuFrame:SetScript("OnDragStop", FI.MenuFrame.StopMovingOrSizing)
     FI.MenuFrame:SetFrameStrata("FULLSCREEN_DIALOG")
     FI.MenuFrame:Hide()
-    FI.MenuFrame.TitleText:SetText(FI.TITLE)
+    FI.MenuFrame.TitleText:SetText(FI.DISPLAY_NAME)
     FI.MenuFrame.CloseButton:SetScript("OnClick", function()
         FI.MenuFrame:Hide()
     end)
@@ -592,14 +592,23 @@ end
 local function CreateOptionsPanel()
     local panel = CreateFrame("Frame")
 
-    local title = panel:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
-    title:SetPoint("TOPLEFT", panel, "TOPLEFT", 16, -16)
-    title:SetText(FI.TITLE)
+    local scrollFrame = CreateFrame("ScrollFrame", nil, panel, "UIPanelScrollFrameTemplate")
+    scrollFrame:SetPoint("TOPLEFT", 0, -10)
+    scrollFrame:SetPoint("BOTTOMRIGHT", -26, 10)
 
-    local refs = BuildPanelContent(panel, {
-        yBase        = -40,
+    local scrollChild = CreateFrame("Frame", nil, scrollFrame)
+    scrollChild:SetWidth(500)
+    scrollChild:SetHeight(660)
+    scrollFrame:SetScrollChild(scrollChild)
+
+    local title = scrollChild:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
+    title:SetPoint("TOPLEFT", scrollChild, "TOPLEFT", 16, -6)
+    title:SetText(FI.DISPLAY_NAME)
+
+    local refs = BuildPanelContent(scrollChild, {
+        yBase        = -30,
         sepWidth     = 500,
-        combatAnchor = { "TOPLEFT", "TOPLEFT", 16, -604 },
+        combatAnchor = { "TOPLEFT", "TOPLEFT", 16, -594 },
     })
 
     panel:SetScript("OnShow", function()
@@ -607,7 +616,7 @@ local function CreateOptionsPanel()
         refs.setCombatState(InCombatLockdown())
     end)
 
-    local category = Settings.RegisterCanvasLayoutCategory(panel, FI.TITLE)
+    local category = Settings.RegisterCanvasLayoutCategory(panel, FI.DISPLAY_NAME)
     Settings.RegisterAddOnCategory(category)
     FI.OptionsCategory = category
 end
@@ -621,7 +630,7 @@ local LDB = LibStub("LibDataBroker-1.1"):NewDataObject("FocusInterrupt", {
         ToggleMenu()
     end,
     OnTooltipShow = function(tooltip)
-        tooltip:SetText(FI.TITLE)
+        tooltip:SetText(FI.DISPLAY_NAME)
         tooltip:AddLine("Click to open settings", 1, 1, 1)
     end,
 })

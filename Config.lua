@@ -1,5 +1,6 @@
 FocusInterruptAddon = FocusInterruptAddon or {}
 FocusInterruptAddon.TITLE = "FocusInterrupt"
+FocusInterruptAddon.DISPLAY_NAME = "Focus Interrupt"
 
 local DB_VERSION = 10
 
