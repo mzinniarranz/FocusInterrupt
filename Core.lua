@@ -96,8 +96,29 @@ function FI.GetInterrupt()
     return spellName, spellID
 end
 
-local function UpsertMacro(name, icon, body)
+local prevMarkName = nil
+local prevKickName = nil
+
+local function FindExistingMacroName(configName, defaultName)
+    local name = configName or defaultName
+    local idx = GetMacroIndexByName(name)
+    if idx and idx > 0 then return name end
+    if name ~= defaultName then
+        idx = GetMacroIndexByName(defaultName)
+        if idx and idx > 0 then return defaultName end
+    end
+    return name
+end
+
+local function UpsertMacro(name, icon, body, oldName)
     local resolvedIcon = icon or "INV_Misc_QuestionMark"
+    if oldName and oldName ~= name then
+        local oldIdx = GetMacroIndexByName(oldName)
+        if oldIdx and oldIdx > 0 then
+            EditMacro(oldIdx, name, resolvedIcon, body)
+            return true
+        end
+    end
     local idx = GetMacroIndexByName(name)
     if idx and idx > 0 then
         EditMacro(idx, name, resolvedIcon, body)
@@ -115,6 +136,13 @@ end
 function FI.UpdateMacros()
     if InCombatLockdown() then
         return
+    end
+
+    if prevMarkName == nil then
+        prevMarkName = FindExistingMacroName(FI_Config.markMacroName, "0FI-Mark")
+    end
+    if prevKickName == nil then
+        prevKickName = FindExistingMacroName(FI_Config.kickMacroName, "0FI-Kick")
     end
 
     local spell = FI.GetInterrupt()
@@ -152,12 +180,16 @@ function FI.UpdateMacros()
                    "/tm " .. condition .. " " .. FI_Config.markIndex
     end
 
-    if not UpsertMacro("0FI-Mark", "ability_hunter_markedfordeath", markBody) then return end
+    local markName = FI_Config.markMacroName or "0FI-Mark"
+    if not UpsertMacro(markName, "ability_hunter_markedfordeath", markBody, prevMarkName) then return end
+    prevMarkName = markName
 
     if spell then
+        local kickName = FI_Config.kickMacroName or "0FI-Kick"
         local kickBody = "#showtooltip " .. spell .. "\n" ..
                          "/cast [@focus,exists][@target] " .. spell
-        UpsertMacro("0FI-Kick", nil, kickBody)
+        UpsertMacro(kickName, nil, kickBody, prevKickName)
+        prevKickName = kickName
     end
 
     local kickInfo = spell and (", kick: " .. spell) or ", no kick (healer spec)"

@@ -20,8 +20,7 @@ Macros are created on login and updated automatically on spec change.
 
 - [ ] Play a sound when focus starts casting and your interrupt is available
 - [x] Announce your assigned mark to the group
-- [ ] Allow renaming macros from the settings menu
-- [ ] Healers should never announce their mark in chat, even if the option is enabled
+- [x] Allow renaming macros from the settings menu
 
 ## UI
 

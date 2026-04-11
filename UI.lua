@@ -53,6 +53,8 @@ local function ApplyRefreshToRefs(refs)
         refs.watermarkLabel:SetAlpha(0.5)
     end
     refs.mouseoverCheck:SetChecked(FI_Config.focusMouseover)
+    refs.markNameInput:SetText(FI_Config.markMacroName or "0FI-Mark")
+    refs.kickNameInput:SetText(FI_Config.kickMacroName or "0FI-Kick")
     -- TODO: cast alert UI disabled
     -- refs.castAlertCheck:SetChecked(FI_Config.castAlertSound or false)
     -- local soundIdx = FI.ValidAlertSoundIndex()
@@ -378,10 +380,92 @@ local function BuildPanelContent(parent, cfg)
     end)
     verboseCheck:SetScript("OnLeave", function() GameTooltip:Hide() end)
 
+    -- Input: mark macro name
+    local markNameLabel = parent:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+    markNameLabel:SetPoint("TOPLEFT", parent, "TOPLEFT", 16, yBase - 490)
+    markNameLabel:SetText("Mark macro name:")
+
+    local markNameInput = CreateFrame("EditBox", nil, parent, "InputBoxTemplate")
+    markNameInput:SetSize(sepWidth - 66, 20)
+    markNameInput:SetPoint("TOPLEFT", parent, "TOPLEFT", 22, yBase - 506)
+    markNameInput:SetAutoFocus(false)
+    markNameInput:SetMaxLetters(16)
+    markNameInput:SetText(FI_Config.markMacroName or "0FI-Mark")
+
+    local function SaveMarkName()
+        local text = strtrim(markNameInput:GetText())
+        if text == "" then text = "0FI-Mark" end
+        markNameInput:SetText(text)
+        FI_Config.markMacroName = text
+        markNameInput:ClearFocus()
+        FI.UpdateMacros()
+    end
+
+    local markNameSaveBtn = CreateFrame("Button", nil, parent, "UIPanelButtonTemplate")
+    markNameSaveBtn:SetSize(50, 22)
+    markNameSaveBtn:SetPoint("LEFT", markNameInput, "RIGHT", 4, 0)
+    markNameSaveBtn:SetText("Save")
+    markNameSaveBtn:SetScript("OnClick", SaveMarkName)
+
+    local markCharCount = parent:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+    markCharCount:SetPoint("TOPLEFT", markNameInput, "BOTTOMLEFT", 0, -2)
+    markCharCount:SetTextColor(0.5, 0.5, 0.5)
+    markCharCount:SetText(#(FI_Config.markMacroName or "0FI-Mark") .. "/16 — Leave empty to reset to default")
+
+    markNameInput:SetScript("OnTextChanged", function(self)
+        markCharCount:SetText(#self:GetText() .. "/16 — Leave empty to reset to default")
+    end)
+    markNameInput:SetScript("OnEnterPressed", function() SaveMarkName() end)
+    markNameInput:SetScript("OnEscapePressed", function(self)
+        self:SetText(FI_Config.markMacroName or "0FI-Mark")
+        self:ClearFocus()
+    end)
+
+    -- Input: kick macro name
+    local kickNameLabel = parent:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+    kickNameLabel:SetPoint("TOPLEFT", parent, "TOPLEFT", 16, yBase - 544)
+    kickNameLabel:SetText("Kick macro name:")
+
+    local kickNameInput = CreateFrame("EditBox", nil, parent, "InputBoxTemplate")
+    kickNameInput:SetSize(sepWidth - 66, 20)
+    kickNameInput:SetPoint("TOPLEFT", parent, "TOPLEFT", 22, yBase - 560)
+    kickNameInput:SetAutoFocus(false)
+    kickNameInput:SetMaxLetters(16)
+    kickNameInput:SetText(FI_Config.kickMacroName or "0FI-Kick")
+
+    local function SaveKickName()
+        local text = strtrim(kickNameInput:GetText())
+        if text == "" then text = "0FI-Kick" end
+        kickNameInput:SetText(text)
+        FI_Config.kickMacroName = text
+        kickNameInput:ClearFocus()
+        FI.UpdateMacros()
+    end
+
+    local kickNameSaveBtn = CreateFrame("Button", nil, parent, "UIPanelButtonTemplate")
+    kickNameSaveBtn:SetSize(50, 22)
+    kickNameSaveBtn:SetPoint("LEFT", kickNameInput, "RIGHT", 4, 0)
+    kickNameSaveBtn:SetText("Save")
+    kickNameSaveBtn:SetScript("OnClick", SaveKickName)
+
+    local kickCharCount = parent:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+    kickCharCount:SetPoint("TOPLEFT", kickNameInput, "BOTTOMLEFT", 0, -2)
+    kickCharCount:SetTextColor(0.5, 0.5, 0.5)
+    kickCharCount:SetText(#(FI_Config.kickMacroName or "0FI-Kick") .. "/16 — Leave empty to reset to default")
+
+    kickNameInput:SetScript("OnTextChanged", function(self)
+        kickCharCount:SetText(#self:GetText() .. "/16 — Leave empty to reset to default")
+    end)
+    kickNameInput:SetScript("OnEnterPressed", function() SaveKickName() end)
+    kickNameInput:SetScript("OnEscapePressed", function(self)
+        self:SetText(FI_Config.kickMacroName or "0FI-Kick")
+        self:ClearFocus()
+    end)
+
     -- Refresh macros button
     local regenBtn = CreateFrame("Button", nil, parent, "UIPanelButtonTemplate")
     regenBtn:SetSize(248, 28)
-    regenBtn:SetPoint("TOPLEFT", parent, "TOPLEFT", 16, yBase - 486)
+    regenBtn:SetPoint("TOPLEFT", parent, "TOPLEFT", 16, yBase - 600)
     regenBtn:SetText("Refresh macros")
     regenBtn:SetScript("OnClick", function()
         FI.UpdateMacros()
@@ -407,11 +491,19 @@ local function BuildPanelContent(parent, cfg)
             enemyOnlyCheck:Disable()
             mouseoverCheck:Disable()
             minimapCheck:Disable()
+            markNameInput:Disable()
+            markNameSaveBtn:Disable()
+            kickNameInput:Disable()
+            kickNameSaveBtn:Disable()
             regenBtn:Disable()
         else
             enemyOnlyCheck:Enable()
             mouseoverCheck:Enable()
             minimapCheck:Enable()
+            markNameInput:Enable()
+            markNameSaveBtn:Enable()
+            kickNameInput:Enable()
+            kickNameSaveBtn:Enable()
             regenBtn:Enable()
         end
         -- verboseCheck, announceCheck and watermarkCheck are intentionally not disabled in combat (no macro changes needed)
@@ -436,6 +528,8 @@ local function BuildPanelContent(parent, cfg)
         announceCheck    = announceCheck,
         watermarkCheck   = watermarkCheck,
         watermarkLabel   = watermarkLabel,
+        markNameInput    = markNameInput,
+        kickNameInput    = kickNameInput,
         -- TODO: cast alert UI disabled
         -- castAlertCheck   = castAlertCheck,
         -- alertSoundDropdown = alertSoundDropdown,
@@ -450,7 +544,7 @@ local function CreateMenu()
     if FI.MenuFrame then return end
 
     FI.MenuFrame = CreateFrame("Frame", "FocusInterruptMenu", UIParent, "BasicFrameTemplateWithInset")
-    FI.MenuFrame:SetSize(280, 572)
+    FI.MenuFrame:SetSize(280, 686)
     FI.MenuFrame:SetPoint("CENTER")
     FI.MenuFrame:SetMovable(true)
     FI.MenuFrame:EnableMouse(true)
@@ -505,7 +599,7 @@ local function CreateOptionsPanel()
     local refs = BuildPanelContent(panel, {
         yBase        = -40,
         sepWidth     = 500,
-        combatAnchor = { "TOPLEFT", "TOPLEFT", 16, -490 },
+        combatAnchor = { "TOPLEFT", "TOPLEFT", 16, -604 },
     })
 
     panel:SetScript("OnShow", function()
