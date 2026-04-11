@@ -38,6 +38,12 @@ local HEALER_SPEC_IDS = {
 local BALANCE_DRUID_SPEC_ID = 102
 local DEMO_WARLOCK_SPEC_ID  = 266
 
+local function ValidMarkIndex(index)
+    if type(index) ~= "number" or index < 1 or index > 8 then return 1 end
+    return math.floor(index)
+end
+FI.ValidMarkIndex = ValidMarkIndex
+
 FI.MARK_NAMES = {
     "Star", "Circle", "Diamond", "Triangle",
     "Moon", "Square", "Cross", "Skull",
@@ -145,6 +151,8 @@ function FI.UpdateMacros()
         prevKickName = FindExistingMacroName(FI_Config.kickMacroName, "0FI-Kick")
     end
 
+    FI_Config.markIndex = ValidMarkIndex(FI_Config.markIndex)
+
     local spell = FI.GetInterrupt()
     local markMode = FI_Config.markMode or "both"
 
@@ -225,12 +233,12 @@ end)
 
 local pendingUpdate = false
 
-local f = CreateFrame("Frame")
-f:RegisterEvent("PLAYER_LOGIN")
-f:RegisterEvent("PLAYER_SPECIALIZATION_CHANGED")
-f:RegisterEvent("PLAYER_REGEN_ENABLED")
-f:RegisterEvent("READY_CHECK")
-f:SetScript("OnEvent", function(self, event, unit)
+local eventFrame = CreateFrame("Frame")
+eventFrame:RegisterEvent("PLAYER_LOGIN")
+eventFrame:RegisterEvent("PLAYER_SPECIALIZATION_CHANGED")
+eventFrame:RegisterEvent("PLAYER_REGEN_ENABLED")
+eventFrame:RegisterEvent("READY_CHECK")
+eventFrame:SetScript("OnEvent", function(self, event, unit)
     if event == "READY_CHECK" then
         if not FI_Config.readyCheckAnnounce then return end
         if FI_Config.markMode == "focusOnly" then return end

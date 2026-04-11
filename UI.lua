@@ -28,11 +28,14 @@ local function ApplyRefreshToRefs(refs)
     local specName = currentSpec and select(2, GetSpecializationInfo(currentSpec)) or "None"
     local spell = FI.GetInterrupt()
 
+    FI_Config.markIndex = FI.ValidMarkIndex(FI_Config.markIndex)
     refs.infoLabel:SetText("Class/Spec: " .. class .. " - " .. specName)
     if spell == false then
         refs.spellLabel:SetText("|cffff4444No interrupt available for this spec.|r")
-    else
+    elseif spell then
         refs.spellLabel:SetText("|cff00ff00Interrupt: " .. spell .. "|r")
+    else
+        refs.spellLabel:SetText("|cffff8800Interrupt spell not found.|r")
     end
     refs.markLabel:SetText("Current mark: |T" .. MARKS[FI_Config.markIndex].icon .. ":14:14|t " .. MARKS[FI_Config.markIndex].name)
     for _, b in ipairs(refs.markButtons) do
