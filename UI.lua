@@ -44,6 +44,14 @@ local function ApplyRefreshToRefs(refs)
     refs.minimapCheck:SetChecked(not FI_Config.minimapBtn.hide)
     refs.verboseCheck:SetChecked(FI_Config.verbose or false)
     refs.announceCheck:SetChecked(FI_Config.readyCheckAnnounce or false)
+    refs.watermarkCheck:SetChecked(FI_Config.announceWatermark or false)
+    if FI_Config.readyCheckAnnounce then
+        refs.watermarkCheck:Enable()
+        refs.watermarkLabel:SetAlpha(1)
+    else
+        refs.watermarkCheck:Disable()
+        refs.watermarkLabel:SetAlpha(0.5)
+    end
     refs.mouseoverCheck:SetChecked(FI_Config.focusMouseover)
     -- TODO: cast alert UI disabled
     -- refs.castAlertCheck:SetChecked(FI_Config.castAlertSound or false)
@@ -211,9 +219,6 @@ local function BuildPanelContent(parent, cfg)
     announceLabel:SetPoint("LEFT", announceCheck, "RIGHT", 4, 0)
     announceLabel:SetText("Announce mark on ready check")
 
-    announceCheck:SetScript("OnClick", function(self)
-        FI_Config.readyCheckAnnounce = self:GetChecked()
-    end)
     announceCheck:SetScript("OnEnter", function(self)
         GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
         GameTooltip:SetText("Announce mark on ready check", 1, 1, 1)
@@ -222,10 +227,44 @@ local function BuildPanelContent(parent, cfg)
     end)
     announceCheck:SetScript("OnLeave", function() GameTooltip:Hide() end)
 
+    -- Sub-checkbox: addon watermark in announce message
+    local watermarkCheck = CreateFrame("CheckButton", nil, parent, "UICheckButtonTemplate")
+    watermarkCheck:SetSize(26, 26)
+    watermarkCheck:SetPoint("TOPLEFT", parent, "TOPLEFT", 32, yBase - 350)
+    watermarkCheck:SetChecked(FI_Config.announceWatermark or false)
+    if not FI_Config.readyCheckAnnounce then watermarkCheck:Disable() end
+
+    local watermarkLabel = parent:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+    watermarkLabel:SetPoint("LEFT", watermarkCheck, "RIGHT", 4, 0)
+    watermarkLabel:SetText("Include addon name in message")
+    if not FI_Config.readyCheckAnnounce then watermarkLabel:SetAlpha(0.5) end
+
+    watermarkCheck:SetScript("OnClick", function(self)
+        FI_Config.announceWatermark = self:GetChecked()
+    end)
+    watermarkCheck:SetScript("OnEnter", function(self)
+        GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+        GameTooltip:SetText("Include addon name in message", 1, 1, 1)
+        GameTooltip:AddLine("Appends \"(Addon: Focus Interrupt)\" to the announce\nmessage to help promote the addon.", 1, 1, 1, true)
+        GameTooltip:Show()
+    end)
+    watermarkCheck:SetScript("OnLeave", function() GameTooltip:Hide() end)
+
+    announceCheck:SetScript("OnClick", function(self)
+        FI_Config.readyCheckAnnounce = self:GetChecked()
+        if self:GetChecked() then
+            watermarkCheck:Enable()
+            watermarkLabel:SetAlpha(1)
+        else
+            watermarkCheck:Disable()
+            watermarkLabel:SetAlpha(0.5)
+        end
+    end)
+
     -- Checkbox: mouseover targeting
     local mouseoverCheck = CreateFrame("CheckButton", nil, parent, "UICheckButtonTemplate")
     mouseoverCheck:SetSize(26, 26)
-    mouseoverCheck:SetPoint("TOPLEFT", parent, "TOPLEFT", 12, yBase - 356)
+    mouseoverCheck:SetPoint("TOPLEFT", parent, "TOPLEFT", 12, yBase - 384)
     mouseoverCheck:SetChecked(FI_Config.focusMouseover)
 
     local mouseoverLabel = parent:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
@@ -302,7 +341,7 @@ local function BuildPanelContent(parent, cfg)
     -- Checkbox: show minimap button
     local minimapCheck = CreateFrame("CheckButton", nil, parent, "UICheckButtonTemplate")
     minimapCheck:SetSize(26, 26)
-    minimapCheck:SetPoint("TOPLEFT", parent, "TOPLEFT", 12, yBase - 390)
+    minimapCheck:SetPoint("TOPLEFT", parent, "TOPLEFT", 12, yBase - 418)
     minimapCheck:SetChecked(not FI_Config.minimapBtn.hide)
 
     local minimapLabel = parent:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
@@ -321,7 +360,7 @@ local function BuildPanelContent(parent, cfg)
     -- Checkbox: verbose chat log
     local verboseCheck = CreateFrame("CheckButton", nil, parent, "UICheckButtonTemplate")
     verboseCheck:SetSize(26, 26)
-    verboseCheck:SetPoint("TOPLEFT", parent, "TOPLEFT", 12, yBase - 424)
+    verboseCheck:SetPoint("TOPLEFT", parent, "TOPLEFT", 12, yBase - 452)
     verboseCheck:SetChecked(FI_Config.verbose or false)
 
     local verboseLabel = parent:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
@@ -342,7 +381,7 @@ local function BuildPanelContent(parent, cfg)
     -- Refresh macros button
     local regenBtn = CreateFrame("Button", nil, parent, "UIPanelButtonTemplate")
     regenBtn:SetSize(248, 28)
-    regenBtn:SetPoint("TOPLEFT", parent, "TOPLEFT", 16, yBase - 458)
+    regenBtn:SetPoint("TOPLEFT", parent, "TOPLEFT", 16, yBase - 486)
     regenBtn:SetText("Refresh macros")
     regenBtn:SetScript("OnClick", function()
         FI.UpdateMacros()
@@ -375,7 +414,7 @@ local function BuildPanelContent(parent, cfg)
             minimapCheck:Enable()
             regenBtn:Enable()
         end
-        -- verboseCheck and announceCheck are intentionally not disabled in combat (no macro changes needed)
+        -- verboseCheck, announceCheck and watermarkCheck are intentionally not disabled in combat (no macro changes needed)
     end
 
     parent:RegisterEvent("PLAYER_REGEN_DISABLED")
@@ -395,6 +434,8 @@ local function BuildPanelContent(parent, cfg)
         minimapCheck     = minimapCheck,
         verboseCheck     = verboseCheck,
         announceCheck    = announceCheck,
+        watermarkCheck   = watermarkCheck,
+        watermarkLabel   = watermarkLabel,
         -- TODO: cast alert UI disabled
         -- castAlertCheck   = castAlertCheck,
         -- alertSoundDropdown = alertSoundDropdown,
@@ -409,7 +450,7 @@ local function CreateMenu()
     if FI.MenuFrame then return end
 
     FI.MenuFrame = CreateFrame("Frame", "FocusInterruptMenu", UIParent, "BasicFrameTemplateWithInset")
-    FI.MenuFrame:SetSize(280, 544)
+    FI.MenuFrame:SetSize(280, 572)
     FI.MenuFrame:SetPoint("CENTER")
     FI.MenuFrame:SetMovable(true)
     FI.MenuFrame:EnableMouse(true)
@@ -464,7 +505,7 @@ local function CreateOptionsPanel()
     local refs = BuildPanelContent(panel, {
         yBase        = -40,
         sepWidth     = 500,
-        combatAnchor = { "TOPLEFT", "TOPLEFT", 16, -462 },
+        combatAnchor = { "TOPLEFT", "TOPLEFT", 16, -490 },
     })
 
     panel:SetScript("OnShow", function()

@@ -1,7 +1,7 @@
 FocusInterruptAddon = FocusInterruptAddon or {}
 FocusInterruptAddon.TITLE = "FocusInterrupt"
 
-local DB_VERSION = 8
+local DB_VERSION = 9
 
 FI_Config = FI_Config or {
     dbVersion = DB_VERSION,
@@ -14,6 +14,7 @@ FI_Config = FI_Config or {
     readyCheckAnnounce = true,
     castAlertSound = false,
     alertSoundIndex = 6,
+    announceWatermark = false,
 }
 
 -- Migrate saved config from older versions
@@ -30,6 +31,7 @@ migrationFrame:SetScript("OnEvent", function(self, event, addonName)
             if FI_Config.focusMouseover == nil then FI_Config.focusMouseover = true end
             FI_Config.castAlertSound = FI_Config.castAlertSound or false
             FI_Config.alertSoundIndex = FI_Config.alertSoundIndex or 6
+            if FI_Config.announceWatermark == nil then FI_Config.announceWatermark = false end
             FI_Config.dbVersion = DB_VERSION
         end
         self:UnregisterEvent("ADDON_LOADED")

@@ -205,7 +205,11 @@ f:SetScript("OnEvent", function(self, event, unit)
         if select(2, GetInstanceInfo()) ~= "party" then return end
         local idx = FI_Config.markIndex
         local channel = IsInGroup(LE_PARTY_CATEGORY_INSTANCE) and "INSTANCE_CHAT" or "PARTY"
-        SendChatMessage("Interrupt mark: {rt" .. idx .. "} " .. FI.MARK_NAMES[idx], channel)
+        local msg = "Interrupt mark: {rt" .. idx .. "} " .. FI.MARK_NAMES[idx]
+        if FI_Config.announceWatermark then
+            msg = msg .. " (Addon: Focus Interrupt)"
+        end
+        SendChatMessage(msg, channel)
         return
     end
     if event == "PLAYER_SPECIALIZATION_CHANGED" and unit ~= "player" then return end
