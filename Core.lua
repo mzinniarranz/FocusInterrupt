@@ -243,6 +243,8 @@ eventFrame:SetScript("OnEvent", function(self, event, unit)
         if not FI_Config.readyCheckAnnounce then return end
         if FI_Config.markMode == "focusOnly" then return end
         if select(2, GetInstanceInfo()) ~= "party" then return end
+        local hasInterrupt = FI.GetInterrupt() and true or false
+        if not hasInterrupt and not FI_Config.healerAnnounceMark then return end
         local idx = FI_Config.markIndex
         local channel = IsInGroup(LE_PARTY_CATEGORY_INSTANCE) and "INSTANCE_CHAT" or "PARTY"
         local msg = "Interrupt mark: {rt" .. idx .. "} " .. FI.MARK_NAMES[idx]
