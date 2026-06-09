@@ -2,7 +2,7 @@ FocusInterruptAddon = FocusInterruptAddon or {}
 FocusInterruptAddon.TITLE = "FocusInterrupt"
 FocusInterruptAddon.DISPLAY_NAME = "Focus Interrupt"
 
-local DB_VERSION = 11
+local DB_VERSION = 12
 
 FI_Config = FI_Config or {
     dbVersion = DB_VERSION,
@@ -17,6 +17,7 @@ FI_Config = FI_Config or {
     alertSoundIndex = 6,
     announceWatermark = false,
     healerAnnounceMark = false,
+    overwriteExistingMark = true,
     markMacroName = "0FI-Mark",
     kickMacroName = "0FI-Kick",
 }
@@ -37,6 +38,7 @@ migrationFrame:SetScript("OnEvent", function(self, event, addonName)
             FI_Config.alertSoundIndex = FI_Config.alertSoundIndex or 6
             if FI_Config.announceWatermark == nil then FI_Config.announceWatermark = false end
             if FI_Config.healerAnnounceMark == nil then FI_Config.healerAnnounceMark = false end
+            if FI_Config.overwriteExistingMark == nil then FI_Config.overwriteExistingMark = true end
             if FI_Config.markMacroName == nil then FI_Config.markMacroName = "0FI-Mark" end
             if FI_Config.kickMacroName == nil then FI_Config.kickMacroName = "0FI-Kick" end
             FI_Config.dbVersion = DB_VERSION

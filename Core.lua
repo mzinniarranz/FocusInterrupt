@@ -177,15 +177,17 @@ function FI.UpdateMacros()
         end
     end
 
+    local markArg = (FI_Config.overwriteExistingMark and "" or "~") .. FI_Config.markIndex
+
     local markBody
     if markMode == "markOnly" then
-        markBody = "/tm " .. condition .. " " .. FI_Config.markIndex
+        markBody = "/tm " .. condition .. " " .. markArg
     elseif markMode == "focusOnly" then
         markBody = stopLine .. "/focus " .. condition
     else -- "both"
         markBody = stopLine ..
                    "/focus " .. condition .. "\n" ..
-                   "/tm " .. condition .. " " .. FI_Config.markIndex
+                   "/tm " .. condition .. " " .. markArg
     end
 
     local markName = FI_Config.markMacroName or "0FI-Mark"
