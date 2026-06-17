@@ -177,15 +177,17 @@ function FI.UpdateMacros()
         end
     end
 
+    local markArg = (FI_Config.overwriteExistingMark and "" or "~") .. FI_Config.markIndex
+
     local markBody
     if markMode == "markOnly" then
-        markBody = "/tm " .. condition .. " " .. FI_Config.markIndex
+        markBody = "/tm " .. condition .. " " .. markArg
     elseif markMode == "focusOnly" then
         markBody = stopLine .. "/focus " .. condition
     else -- "both"
         markBody = stopLine ..
                    "/focus " .. condition .. "\n" ..
-                   "/tm " .. condition .. " " .. FI_Config.markIndex
+                   "/tm " .. condition .. " " .. markArg
     end
 
     local markName = FI_Config.markMacroName or "0FI-Mark"
@@ -243,6 +245,8 @@ eventFrame:SetScript("OnEvent", function(self, event, unit)
         if not FI_Config.readyCheckAnnounce then return end
         if FI_Config.markMode == "focusOnly" then return end
         if select(2, GetInstanceInfo()) ~= "party" then return end
+        local hasInterrupt = FI.GetInterrupt() and true or false
+        if not hasInterrupt and not FI_Config.healerAnnounceMark then return end
         local idx = FI_Config.markIndex
         local channel = IsInGroup(LE_PARTY_CATEGORY_INSTANCE) and "INSTANCE_CHAT" or "PARTY"
         local msg = "Interrupt mark: {rt" .. idx .. "} " .. FI.MARK_NAMES[idx]

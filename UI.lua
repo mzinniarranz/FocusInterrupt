@@ -42,6 +42,7 @@ local function ApplyRefreshToRefs(refs)
         SetMarkButtonDesaturated(b, b.markIndex ~= FI_Config.markIndex)
     end
     refs.enemyOnlyCheck:SetChecked(FI_Config.focusEnemyOnly or false)
+    refs.overwriteMarkCheck:SetChecked(FI_Config.overwriteExistingMark ~= false)
     UIDropDownMenu_SetSelectedValue(refs.markModeDropdown, FI_Config.markMode)
     UIDropDownMenu_SetText(refs.markModeDropdown, refs.getMarkModeText(FI_Config.markMode))
     refs.minimapCheck:SetChecked(not FI_Config.minimapBtn.hide)
@@ -55,6 +56,8 @@ local function ApplyRefreshToRefs(refs)
         refs.watermarkCheck:Disable()
         refs.watermarkLabel:SetAlpha(0.5)
     end
+    refs.healerAnnounceCheck:SetChecked(FI_Config.healerAnnounceMark or false)
+    refs.updateHealerCheckState()
     refs.mouseoverCheck:SetChecked(FI_Config.focusMouseover)
     refs.markNameInput:SetText(FI_Config.markMacroName or "0FI-Mark")
     refs.kickNameInput:SetText(FI_Config.kickMacroName or "0FI-Kick")
@@ -199,10 +202,32 @@ local function BuildPanelContent(parent, cfg)
         end
     end)
 
+    -- Checkbox: overwrite existing marks
+    local overwriteMarkCheck = CreateFrame("CheckButton", nil, parent, "UICheckButtonTemplate")
+    overwriteMarkCheck:SetSize(26, 26)
+    overwriteMarkCheck:SetPoint("TOPLEFT", parent, "TOPLEFT", 12, yBase - 288)
+    overwriteMarkCheck:SetChecked(FI_Config.overwriteExistingMark ~= false)
+
+    local overwriteMarkLabel = parent:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+    overwriteMarkLabel:SetPoint("LEFT", overwriteMarkCheck, "RIGHT", 4, 0)
+    overwriteMarkLabel:SetText("Overwrite existing marks")
+
+    overwriteMarkCheck:SetScript("OnClick", function(self)
+        FI_Config.overwriteExistingMark = self:GetChecked()
+        FI.UpdateMacros()
+    end)
+    overwriteMarkCheck:SetScript("OnEnter", function(self)
+        GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+        GameTooltip:SetText("Overwrite existing marks", 1, 1, 1)
+        GameTooltip:AddLine("On: replaces any mark already on the target (/tm 1).\nOff: keeps the existing mark and only marks if\nthe target has none (/tm ~1).", 1, 1, 1, true)
+        GameTooltip:Show()
+    end)
+    overwriteMarkCheck:SetScript("OnLeave", function() GameTooltip:Hide() end)
+
     -- Checkbox: focus enemy only
     local enemyOnlyCheck = CreateFrame("CheckButton", nil, parent, "UICheckButtonTemplate")
     enemyOnlyCheck:SetSize(26, 26)
-    enemyOnlyCheck:SetPoint("TOPLEFT", parent, "TOPLEFT", 12, yBase - 288)
+    enemyOnlyCheck:SetPoint("TOPLEFT", parent, "TOPLEFT", 12, yBase - 316)
     enemyOnlyCheck:SetChecked(FI_Config.focusEnemyOnly or false)
 
     local enemyOnlyLabel = parent:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
@@ -217,7 +242,7 @@ local function BuildPanelContent(parent, cfg)
     -- Checkbox: announce mark on ready check
     local announceCheck = CreateFrame("CheckButton", nil, parent, "UICheckButtonTemplate")
     announceCheck:SetSize(26, 26)
-    announceCheck:SetPoint("TOPLEFT", parent, "TOPLEFT", 12, yBase - 322)
+    announceCheck:SetPoint("TOPLEFT", parent, "TOPLEFT", 12, yBase - 350)
     announceCheck:SetChecked(FI_Config.readyCheckAnnounce or false)
 
     local announceLabel = parent:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
@@ -235,7 +260,7 @@ local function BuildPanelContent(parent, cfg)
     -- Sub-checkbox: addon watermark in announce message
     local watermarkCheck = CreateFrame("CheckButton", nil, parent, "UICheckButtonTemplate")
     watermarkCheck:SetSize(26, 26)
-    watermarkCheck:SetPoint("TOPLEFT", parent, "TOPLEFT", 32, yBase - 350)
+    watermarkCheck:SetPoint("TOPLEFT", parent, "TOPLEFT", 32, yBase - 378)
     watermarkCheck:SetChecked(FI_Config.announceWatermark or false)
     if not FI_Config.readyCheckAnnounce then watermarkCheck:Disable() end
 
@@ -255,6 +280,40 @@ local function BuildPanelContent(parent, cfg)
     end)
     watermarkCheck:SetScript("OnLeave", function() GameTooltip:Hide() end)
 
+    -- Sub-checkbox: healer announces mark on ready check
+    local healerAnnounceCheck = CreateFrame("CheckButton", nil, parent, "UICheckButtonTemplate")
+    healerAnnounceCheck:SetSize(26, 26)
+    healerAnnounceCheck:SetPoint("TOPLEFT", parent, "TOPLEFT", 32, yBase - 406)
+    healerAnnounceCheck:SetChecked(FI_Config.healerAnnounceMark or false)
+
+    local healerAnnounceLabel = parent:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+    healerAnnounceLabel:SetPoint("LEFT", healerAnnounceCheck, "RIGHT", 4, 0)
+    healerAnnounceLabel:SetText("Announce mark as healer")
+
+    local function UpdateHealerCheckState()
+        local hasInterrupt = FI.GetInterrupt() and true or false
+        local parentOn = FI_Config.readyCheckAnnounce and true or false
+        if parentOn and not hasInterrupt then
+            healerAnnounceCheck:Enable()
+            healerAnnounceLabel:SetAlpha(1)
+        else
+            healerAnnounceCheck:Disable()
+            healerAnnounceLabel:SetAlpha(0.5)
+        end
+    end
+    UpdateHealerCheckState()
+
+    healerAnnounceCheck:SetScript("OnClick", function(self)
+        FI_Config.healerAnnounceMark = self:GetChecked()
+    end)
+    healerAnnounceCheck:SetScript("OnEnter", function(self)
+        GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+        GameTooltip:SetText("Announce mark as healer", 1, 1, 1)
+        GameTooltip:AddLine("When enabled, healer specs will post the interrupt\nmark to group chat on ready check. Disabled for\nspecs that carry an interrupt (they always announce).", 1, 1, 1, true)
+        GameTooltip:Show()
+    end)
+    healerAnnounceCheck:SetScript("OnLeave", function() GameTooltip:Hide() end)
+
     announceCheck:SetScript("OnClick", function(self)
         FI_Config.readyCheckAnnounce = self:GetChecked()
         if self:GetChecked() then
@@ -264,12 +323,13 @@ local function BuildPanelContent(parent, cfg)
             watermarkCheck:Disable()
             watermarkLabel:SetAlpha(0.5)
         end
+        UpdateHealerCheckState()
     end)
 
     -- Checkbox: mouseover targeting
     local mouseoverCheck = CreateFrame("CheckButton", nil, parent, "UICheckButtonTemplate")
     mouseoverCheck:SetSize(26, 26)
-    mouseoverCheck:SetPoint("TOPLEFT", parent, "TOPLEFT", 12, yBase - 384)
+    mouseoverCheck:SetPoint("TOPLEFT", parent, "TOPLEFT", 12, yBase - 440)
     mouseoverCheck:SetChecked(FI_Config.focusMouseover)
 
     local mouseoverLabel = parent:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
@@ -346,7 +406,7 @@ local function BuildPanelContent(parent, cfg)
     -- Checkbox: show minimap button
     local minimapCheck = CreateFrame("CheckButton", nil, parent, "UICheckButtonTemplate")
     minimapCheck:SetSize(26, 26)
-    minimapCheck:SetPoint("TOPLEFT", parent, "TOPLEFT", 12, yBase - 418)
+    minimapCheck:SetPoint("TOPLEFT", parent, "TOPLEFT", 12, yBase - 474)
     minimapCheck:SetChecked(not FI_Config.minimapBtn.hide)
 
     local minimapLabel = parent:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
@@ -365,7 +425,7 @@ local function BuildPanelContent(parent, cfg)
     -- Checkbox: verbose chat log
     local verboseCheck = CreateFrame("CheckButton", nil, parent, "UICheckButtonTemplate")
     verboseCheck:SetSize(26, 26)
-    verboseCheck:SetPoint("TOPLEFT", parent, "TOPLEFT", 12, yBase - 452)
+    verboseCheck:SetPoint("TOPLEFT", parent, "TOPLEFT", 12, yBase - 508)
     verboseCheck:SetChecked(FI_Config.verbose or false)
 
     local verboseLabel = parent:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
@@ -385,12 +445,12 @@ local function BuildPanelContent(parent, cfg)
 
     -- Input: mark macro name
     local markNameLabel = parent:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
-    markNameLabel:SetPoint("TOPLEFT", parent, "TOPLEFT", 16, yBase - 490)
+    markNameLabel:SetPoint("TOPLEFT", parent, "TOPLEFT", 16, yBase - 546)
     markNameLabel:SetText("Mark macro name:")
 
     local markNameInput = CreateFrame("EditBox", nil, parent, "InputBoxTemplate")
     markNameInput:SetSize(sepWidth - 66, 20)
-    markNameInput:SetPoint("TOPLEFT", parent, "TOPLEFT", 22, yBase - 506)
+    markNameInput:SetPoint("TOPLEFT", parent, "TOPLEFT", 22, yBase - 562)
     markNameInput:SetAutoFocus(false)
     markNameInput:SetMaxLetters(16)
     markNameInput:SetText(FI_Config.markMacroName or "0FI-Mark")
@@ -409,12 +469,12 @@ local function BuildPanelContent(parent, cfg)
 
     -- Input: kick macro name
     local kickNameLabel = parent:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
-    kickNameLabel:SetPoint("TOPLEFT", parent, "TOPLEFT", 16, yBase - 544)
+    kickNameLabel:SetPoint("TOPLEFT", parent, "TOPLEFT", 16, yBase - 600)
     kickNameLabel:SetText("Kick macro name:")
 
     local kickNameInput = CreateFrame("EditBox", nil, parent, "InputBoxTemplate")
     kickNameInput:SetSize(sepWidth - 66, 20)
-    kickNameInput:SetPoint("TOPLEFT", parent, "TOPLEFT", 22, yBase - 560)
+    kickNameInput:SetPoint("TOPLEFT", parent, "TOPLEFT", 22, yBase - 616)
     kickNameInput:SetAutoFocus(false)
     kickNameInput:SetMaxLetters(16)
     kickNameInput:SetText(FI_Config.kickMacroName or "0FI-Kick")
@@ -490,7 +550,7 @@ local function BuildPanelContent(parent, cfg)
     -- Refresh macros button
     local regenBtn = CreateFrame("Button", nil, parent, "UIPanelButtonTemplate")
     regenBtn:SetSize(248, 28)
-    regenBtn:SetPoint("TOPLEFT", parent, "TOPLEFT", 16, yBase - 600)
+    regenBtn:SetPoint("TOPLEFT", parent, "TOPLEFT", 16, yBase - 656)
     regenBtn:SetText("Refresh macros")
     regenBtn:SetScript("OnClick", function()
         FI.UpdateMacros()
@@ -514,6 +574,7 @@ local function BuildPanelContent(parent, cfg)
         end
         if inCombat then
             enemyOnlyCheck:Disable()
+            overwriteMarkCheck:Disable()
             mouseoverCheck:Disable()
             minimapCheck:Disable()
             markNameInput:Disable()
@@ -523,6 +584,7 @@ local function BuildPanelContent(parent, cfg)
             regenBtn:Disable()
         else
             enemyOnlyCheck:Enable()
+            overwriteMarkCheck:Enable()
             mouseoverCheck:Enable()
             minimapCheck:Enable()
             markNameInput:Enable()
@@ -546,6 +608,7 @@ local function BuildPanelContent(parent, cfg)
         markLabel        = markLabel,
         markButtons      = markButtons,
         enemyOnlyCheck   = enemyOnlyCheck,
+        overwriteMarkCheck = overwriteMarkCheck,
         mouseoverCheck   = mouseoverCheck,
         markModeDropdown = markModeDropdown,
         minimapCheck     = minimapCheck,
@@ -553,6 +616,9 @@ local function BuildPanelContent(parent, cfg)
         announceCheck    = announceCheck,
         watermarkCheck   = watermarkCheck,
         watermarkLabel   = watermarkLabel,
+        healerAnnounceCheck     = healerAnnounceCheck,
+        healerAnnounceLabel     = healerAnnounceLabel,
+        updateHealerCheckState  = UpdateHealerCheckState,
         markNameInput    = markNameInput,
         kickNameInput    = kickNameInput,
         -- TODO: cast alert UI disabled
@@ -569,7 +635,7 @@ local function CreateMenu()
     if FI.MenuFrame then return end
 
     FI.MenuFrame = CreateFrame("Frame", "FocusInterruptMenu", UIParent, "BasicFrameTemplateWithInset")
-    FI.MenuFrame:SetSize(280, 686)
+    FI.MenuFrame:SetSize(280, 742)
     FI.MenuFrame:SetPoint("CENTER")
     FI.MenuFrame:SetMovable(true)
     FI.MenuFrame:EnableMouse(true)
@@ -623,7 +689,7 @@ local function CreateOptionsPanel()
 
     local scrollChild = CreateFrame("Frame", nil, scrollFrame)
     scrollChild:SetWidth(500)
-    scrollChild:SetHeight(660)
+    scrollChild:SetHeight(716)
     scrollFrame:SetScrollChild(scrollChild)
 
     local title = scrollChild:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
@@ -633,7 +699,7 @@ local function CreateOptionsPanel()
     local refs = BuildPanelContent(scrollChild, {
         yBase        = -30,
         sepWidth     = 500,
-        combatAnchor = { "TOPLEFT", "TOPLEFT", 16, -594 },
+        combatAnchor = { "TOPLEFT", "TOPLEFT", 16, -650 },
     })
 
     panel:SetScript("OnShow", function()
