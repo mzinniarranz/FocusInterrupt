@@ -10,7 +10,8 @@ local C_OK    = "|cff00ff00"
 local INTERRUPT_SPELLS = {
     WARRIOR       = 6552,   -- Pummel
     PALADIN       = 96231,  -- Rebuke
-    HUNTER        = 147362, -- Counter Shot
+    HUNTER        = 147362, -- Counter Shot (BM/MM)
+    HUNTER_SURVIVAL = 187707, -- Muzzle (Survival)
     ROGUE         = 1766,   -- Kick
     DEATHKNIGHT   = 47528,  -- Mind Freeze
     MONK          = 116705, -- Spear Hand Strike
@@ -35,8 +36,9 @@ local HEALER_SPEC_IDS = {
     [1468] = true, -- Preservation Evoker
 }
 
-local BALANCE_DRUID_SPEC_ID = 102
-local DEMO_WARLOCK_SPEC_ID  = 266
+local BALANCE_DRUID_SPEC_ID    = 102
+local DEMO_WARLOCK_SPEC_ID     = 266
+local SURVIVAL_HUNTER_SPEC_ID  = 255
 
 local function ValidMarkIndex(index)
     if type(index) ~= "number" or index < 1 or index > 8 then return 1 end
@@ -95,6 +97,8 @@ function FI.GetInterrupt()
         key = "DRUID_BALANCE"
     elseif specID == DEMO_WARLOCK_SPEC_ID then
         key = "WARLOCK_DEMO"
+    elseif specID == SURVIVAL_HUNTER_SPEC_ID then
+        key = "HUNTER_SURVIVAL"
     end
 
     local spellID = INTERRUPT_SPELLS[key]
